@@ -69,7 +69,10 @@ body{
   align-items:center; justify-content:center;
 }
 
-/* ---- the title: emerge, then quietly failing CRT ---- */
+/* ---- the title ----
+   Built as three "systems" segments: one line on desktop,
+   stacked into a tower on mobile. Each segment carries its own
+   glitch ghosts. */
 .intro h1{
   font-family:'VT323', monospace;
   font-size:8.4vw;
@@ -79,22 +82,31 @@ body{
   color:var(--bone);
   text-transform:uppercase;
   white-space:nowrap;
-  position:relative;
+  text-align:center;
   opacity:0;
   animation:
     emerge 2s ease .3s forwards,
     flicker 7s steps(1) 2.6s infinite;
 }
-.intro h1::before,
-.intro h1::after{
+.intro h1 span{
+  position:relative;
+  display:inline;
+}
+.intro h1 span::before,
+.intro h1 span::after{
   content:attr(data-text);
   position:absolute; inset:0;
   color:var(--bone);
   opacity:0;
   pointer-events:none;
 }
-.intro h1::before{ animation:ghostL 7s steps(1) 2.6s infinite; }
-.intro h1::after{  animation:ghostR 7s steps(1) 2.6s infinite; }
+.intro h1 span::before{ animation:ghostL 7s steps(1) 2.6s infinite; }
+.intro h1 span::after{  animation:ghostR 7s steps(1) 2.6s infinite; }
+/* each segment glitches on its own offset clock */
+.intro h1 span:nth-child(2)::before,
+.intro h1 span:nth-child(2)::after{ animation-delay:4.1s; }
+.intro h1 span:nth-child(3)::before,
+.intro h1 span:nth-child(3)::after{ animation-delay:5.7s; }
 
 @keyframes emerge{
   from{ opacity:0; filter:blur(12px); }
@@ -139,14 +151,13 @@ body{
   cursor:pointer;
   will-change:transform;
   opacity:1;
-  transition:opacity 3.4s ease;   /* the slow dissolve when a piece migrates */
+  transition:opacity 3.4s ease;
 }
 .piece.moving{
   opacity:0 !important;
   pointer-events:none;
 }
 
-/* ---- the hum: each piece breathes at its own rate ---- */
 .piece img{
   display:block; width:100%; height:auto;
   filter:brightness(.82);
@@ -219,13 +230,31 @@ body{
 @media (prefers-reduced-motion: reduce){
   .grain{ animation:none; }
   .intro h1{ animation:emerge 0s forwards; opacity:1; }
-  .intro h1::before, .intro h1::after{ animation:none; opacity:0; }
+  .intro h1 span::before, .intro h1 span::after{ animation:none; opacity:0; }
   .piece{ transform:none !important; transition:none; }
   .piece img{ animation:none; opacity:1; }
 }
 
+/* ================================================================
+   MOBILE — its own treatment, not the desktop squeezed thin
+   ================================================================ */
 @media (max-width:640px){
   .mark.tr{ display:none; }
+
+  /* the title becomes a stacked tower — three storeys of SYSTEMS */
+  .intro h1{
+    font-size:23vw;
+    line-height:.82;
+    letter-spacing:.03em;
+  }
+  .intro h1 span{ display:block; }
+
+  /* captions can't be hovered on a phone — show them faintly, always */
+  .piece figcaption{ opacity:.55; font-size:9px; }
+
+  /* lighter shadows: cheaper to render, and phone screens crush
+     dark detail anyway */
+  .piece img{ box-shadow:0 14px 36px rgba(0,0,0,.6); }
 }
 </style>
 </head>
@@ -237,7 +266,7 @@ body{
 <div class="mark tr">images, made</div>
 
 <header class="intro">
-  <h1 data-text="systemssystemssystems">systemssystemssystems</h1>
+  <h1><span data-text="systems">systems</span><span data-text="systems">systems</span><span data-text="systems">systems</span></h1>
 </header>
 
 <main class="field" id="field"></main>
@@ -270,19 +299,15 @@ const WORKS = [
   { src:"images/g.png",   title:"pylon i",     year:"2026" },
   { src:"images/h.png",   title:"pylon i",     year:"2026" },
   { src:"images/i.png",   title:"pylon i",     year:"2026" },
-  { src:"images/2.2.png", title:"lattice i",   year:"2026" },
+  { src:"images/4.2.png", title:"lattice i",   year:"2026" },
   { src:"images/4.3.png", title:"lattice ii",  year:"2026" },
-  { src:"images/7.2.png", title:"chaos bloom", year:"2026" },
+  { src:"images/7.3.png", title:"chaos bloom", year:"2026" },
   { src:"images/8.2.png", title:"vertebrae",   year:"2026" },
 ];
 
 /* ================================================================
-   Layout + evolution.
-   Each piece migrates on its own clock: every ~10-18s it slowly
-   fades out, moves to a completely new spot ANYWHERE on the page
-   with a freshly rolled size, and fades back in. Nested pairs
-   travel together. Nothing is safe — pieces move even while you
-   are looking at them.
+   Layout + evolution. Pieces migrate anywhere, on their own
+   clocks, re-rolling size each time. Nested pairs travel together.
 
    Tuning:
      FADE              — dissolve length (ms), matches the CSS 3.4s
@@ -300,33 +325,33 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const seeded = mulberry32(20260713);   // first arrangement; evolution is truly random after
+const seeded = mulberry32(20260713);
 
 const field = document.getElementById('field');
 const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const stepVh = mobile ? 54 : 60;
+/* tighter vertical rhythm on mobile = denser, less dead space */
+const stepVh = mobile ? 38 : 60;
 const pieces = [];
 const hosts = [];
 
 let lastHost = null;
 
-/* total height of the field, in vh — pieces can land anywhere within it */
 const bigCount = WORKS.length - Math.floor(WORKS.length / 3);
 const fieldVh = bigCount * stepVh + 55;
 
-/* give a host (and its nested child, if any) fresh geometry —
-   new size from the range, new position anywhere on the page */
 function place(h, R){
-  h.w = mobile ? 42 + R()*34 : 16 + R()*32;        // size re-rolled every move
-  h.x = 4 + R()*(88 - h.w);
-  h.y = 6 + R()*(fieldVh - 50);                    // anywhere, top to bottom
+  /* mobile pieces run bigger relative to the screen — small
+     fragments that work on desktop just read as clutter on a phone */
+  h.w = mobile ? 54 + R()*36 : 16 + R()*32;
+  h.x = 2 + R()*Math.max(92 - h.w, 2);
+  h.y = 6 + R()*(fieldVh - 50);
   h.z = Math.floor(R()*20);
   apply(h.fig, h);
   if(h.child){
     const c = h.child;
-    c.w = mobile ? 16 + R()*12 : 8 + R()*10;       // child size re-rolled too
+    c.w = mobile ? 20 + R()*12 : 8 + R()*10;
     c.x = h.x + R() * Math.max(h.w - c.w, 3);
     c.y = h.y + 8 + R()*14;
     c.z = h.z + 5;
@@ -340,7 +365,6 @@ function apply(fig, o){
   fig.style.zIndex = o.z;
 }
 
-/* build the field */
 WORKS.forEach((work, i) => {
   const fig = document.createElement('figure');
   fig.className = 'piece';
@@ -375,12 +399,10 @@ WORKS.forEach((work, i) => {
   }
 });
 
-/* first arrangement, from the seed */
 hosts.forEach(h => place(h, seeded));
 
 field.style.height = fieldVh + 'vh';
 
-/* parallax drift */
 function drift(){
   const sy = window.scrollY;
   for(const p of pieces){
@@ -390,15 +412,13 @@ function drift(){
 drift();
 if(!reduced) window.addEventListener('scroll', () => requestAnimationFrame(drift), { passive:true });
 
-/* ---- the evolution: each host migrates on its own clock,
-        regardless of who's watching ---- */
 function migrate(h){
-  const wait = 9000 + Math.random()*9000;   // ~10-18s between moves, per piece
+  const wait = 9000 + Math.random()*9000;
   setTimeout(() => {
     h.fig.classList.add('moving');
     if(h.child) h.child.fig.classList.add('moving');
     setTimeout(() => {
-      place(h, Math.random);                // new spot, new size, while invisible
+      place(h, Math.random);
       h.fig.classList.remove('moving');
       if(h.child) h.child.fig.classList.remove('moving');
       migrate(h);
