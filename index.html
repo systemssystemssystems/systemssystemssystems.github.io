@@ -6,7 +6,6 @@
 
 <title>systemssystemssystems</title>
 
-<!-- Fonts: VT323 for the title, IBM Plex Mono for everything else -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
 
@@ -70,10 +69,7 @@ body{
   align-items:center; justify-content:center;
 }
 
-/* ---- the title: VT323, emerging from blur, then quietly failing ----
-   Tune: flicker depth = opacity dips in @keyframes flicker
-         frequency    = the 7s durations
-         violence     = translateX distances in the ghost frames */
+/* ---- the title: emerge, then quietly failing CRT ---- */
 .intro h1{
   font-family:'VT323', monospace;
   font-size:8.4vw;
@@ -104,7 +100,6 @@ body{
   from{ opacity:0; filter:blur(12px); }
   to{ opacity:1; filter:blur(0); }
 }
-
 @keyframes flicker{
   0%, 100% { opacity:1; }
   11%   { opacity:.55; }
@@ -119,7 +114,6 @@ body{
   83%   { opacity:.85; }
   83.5% { opacity:1; }
 }
-
 @keyframes ghostL{
   0%, 100% { opacity:0; transform:none; }
   11%   { opacity:.35; transform:translateX(-4px); }
@@ -144,13 +138,16 @@ body{
   position:absolute;
   cursor:pointer;
   will-change:transform;
+  opacity:1;
+  transition:opacity 3.4s ease;   /* the slow dissolve when a piece migrates */
+}
+/* while a piece is mid-migration it's invisible and unclickable */
+.piece.moving{
+  opacity:0 !important;
+  pointer-events:none;
 }
 
-/* ---- the hum: each piece slowly breathes in and out of the dark.
-   Every image gets its own random duration and phase (set in the
-   script), so they pulse out of sync — like current moving through
-   different lines. Tune the depth by changing the .45 below:
-   lower = fades further out, higher = gentler. */
+/* ---- the hum: each piece breathes at its own rate ---- */
 .piece img{
   display:block; width:100%; height:auto;
   filter:brightness(.82);
@@ -224,7 +221,7 @@ body{
   .grain{ animation:none; }
   .intro h1{ animation:emerge 0s forwards; opacity:1; }
   .intro h1::before, .intro h1::after{ animation:none; opacity:0; }
-  .piece{ transform:none !important; }
+  .piece{ transform:none !important; transition:none; }
   .piece img{ animation:none; opacity:1; }
 }
 
@@ -241,7 +238,6 @@ body{
 <div class="mark tr">images, made</div>
 
 <header class="intro">
-  <!-- data-text must match the visible text — it feeds the glitch ghosts -->
   <h1 data-text="systemssystemssystems">systemssystemssystems</h1>
 </header>
 
@@ -265,26 +261,35 @@ body{
    ================================================================ */
 const WORKS = [
   { src:"images/1.2.png", title:"pylon i",     year:"2026" },
-  { src:"images/a.png", title:"pylon i",     year:"2026" },
-  { src:"images/b.png", title:"pylon i",     year:"2026" }, 
-  { src:"images/c.png", title:"pylon i",     year:"2026" }, 
-  { src:"images/d.png", title:"pylon i",     year:"2026" }, 
-  { src:"images/e.png", title:"pylon i",     year:"2026" }, 
-  { src:"images/f.png", title:"pylon i",     year:"2026" }, 
-  { src:"images/g.png", title:"pylon i",     year:"2026" },
-   { src:"images/h.png", title:"pylon i",     year:"2026" },
-  { src:"images/i.png", title:"lattice i",   year:"2026" },
-   { src:"images/3.2.png", title:"lattice i",   year:"2026" },
+  { src:"images/a.png",   title:"pylon i",     year:"2026" },
+  { src:"images/b.png",   title:"pylon i",     year:"2026" },
+  { src:"images/c.png",   title:"pylon i",     year:"2026" },
+  { src:"images/d.png",   title:"pylon i",     year:"2026" },
+  { src:"images/e.png",   title:"pylon i",     year:"2026" },
+  { src:"images/f.png",   title:"pylon i",     year:"2026" },
+  { src:"images/g.png",   title:"pylon i",     year:"2026" },
+  { src:"images/h.png",   title:"pylon i",     year:"2026" },
+  { src:"images/4.2.png", title:"lattice i",   year:"2026" },
   { src:"images/4.3.png", title:"lattice ii",  year:"2026" },
   { src:"images/7.3.png", title:"chaos bloom", year:"2026" },
   { src:"images/8.2.png", title:"vertebrae",   year:"2026" },
 ];
 
 /* ================================================================
-   Layout: no tilts. Smaller pieces, more size variety, partial
-   overlaps (nothing fully buried). Every third piece is small and
-   nested inside the previous big one.
+   Layout + evolution.
+   Pieces are placed as before (no tilts, size variety, every third
+   piece nested in the previous big one) — but now each piece also
+   MIGRATES on its own clock: every ~10-18 seconds it slowly fades
+   out, silently moves to a new spot in its zone with a new size,
+   and slowly fades back in. Nested pairs travel together. The page
+   never rearranges all at once — it evolves piece by piece.
+
+   Tuning:
+     FADE            — dissolve length (ms), matches the CSS 3.4s
+     9000 + ...*9000 — time between migrations per piece (ms)
    ================================================================ */
+
+const FADE = 3400;
 
 function mulberry32(seed){
   return function(){
@@ -294,68 +299,85 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rand = mulberry32(20270783);   // change to reshuffle the whole arrangement
+const seeded = mulberry32(20260713);   // first arrangement; evolution is truly random after
 
 const field = document.getElementById('field');
 const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const stepVh = mobile ? 54 : 45;     // bigger step = lighter overlap
-const pieces = [];
+const stepVh = mobile ? 54 : 60;
+const pieces = [];   // for the parallax
+const hosts = [];    // big pieces (each may carry one nested child)
 
 let ycursor = 8;
-let prev = null;
+let lastHost = null;
 
+/* give a host (and its nested child, if any) a fresh geometry */
+function place(h, R){
+  h.w = mobile ? 46 + R()*28 : 20 + R()*24;
+  h.x = 4 + R()*(88 - h.w);
+  h.y = h.band + R()*10;
+  h.z = Math.floor(R()*20);
+  apply(h.fig, h);
+  if(h.child){
+    const c = h.child;
+    c.w = mobile ? 20 + R()*8 : 10 + R()*7;
+    c.x = h.x + R() * Math.max(h.w - c.w, 3);
+    c.y = h.y + 10 + R()*14;
+    c.z = h.z + 5;
+    apply(c.fig, c);
+  }
+}
+function apply(fig, o){
+  fig.style.width = o.w + 'vw';
+  fig.style.left  = o.x + 'vw';
+  fig.style.top   = o.y + 'vh';
+  fig.style.zIndex = o.z;
+}
+
+/* build the field */
 WORKS.forEach((work, i) => {
   const fig = document.createElement('figure');
   fig.className = 'piece';
   fig.tabIndex = 0;
-
-  const isSmall = (i % 3 === 2) && prev;
-  let w, x, y, z, drift;
-
-  if(isSmall){
-    // nested piece: sits inside the previous big one
-    w = mobile ? 20 + rand()*8 : 10 + rand()*7;
-    x = prev.x + rand() * Math.max(prev.w - w, 3);
-    y = prev.y + 10 + rand()*14;
-    z = prev.z + 5;
-    drift = prev.drift;
-  } else {
-    // main pieces: smaller overall, wide size variety piece-to-piece
-    w = mobile ? 46 + rand()*28 : 20 + rand()*24;
-    x = 4 + rand()*(88 - w);
-    y = ycursor + rand()*10;
-    z = Math.floor(rand()*20);
-    drift = reduced ? 0 : (rand()*0.14 - 0.04);
-    ycursor += stepVh;
-    prev = { x, y, w, z, drift };
-  }
-
-  fig.style.width = w + 'vw';
-  fig.style.left  = x + 'vw';
-  fig.style.top   = y + 'vh';
-  fig.style.zIndex = z;
-  fig.dataset.drift = drift;
-
-  // each piece hums at its own speed and phase
-  fig.style.setProperty('--humDur', (4 + rand()*5).toFixed(2) + 's');
-  fig.style.setProperty('--humDelay', (-rand()*8).toFixed(2) + 's');
 
   const num = String(WORKS.length - i).padStart(2,'0');
   fig.innerHTML = `
     <img src="${work.src}" alt="${work.title}" loading="lazy">
     <figcaption><b>${num}</b>${work.title} — ${work.year}</figcaption>`;
 
+  fig.style.setProperty('--humDur', (4 + seeded()*5).toFixed(2) + 's');
+  fig.style.setProperty('--humDelay', (-seeded()*8).toFixed(2) + 's');
+
   fig.addEventListener('click', () => openBox(i));
   fig.addEventListener('keydown', e => { if(e.key === 'Enter') openBox(i); });
-
   field.appendChild(fig);
   pieces.push(fig);
+
+  const isSmall = (i % 3 === 2) && lastHost;
+  if(isSmall){
+    lastHost.child = { fig };
+    fig.dataset.drift = lastHost.drift;
+  } else {
+    const h = {
+      fig,
+      band: ycursor,
+      drift: reduced ? 0 : (seeded()*0.14 - 0.04),
+      child: null
+    };
+    fig.dataset.drift = h.drift;
+    ycursor += stepVh;
+    hosts.push(h);
+    lastHost = h;
+  }
 });
+
+/* first arrangement, from the seed */
+hosts.forEach(h => place(h, seeded));
 
 field.style.height = (ycursor + 55) + 'vh';
 
+/* parallax drift */
 function drift(){
   const sy = window.scrollY;
   for(const p of pieces){
@@ -364,6 +386,28 @@ function drift(){
 }
 drift();
 if(!reduced) window.addEventListener('scroll', () => requestAnimationFrame(drift), { passive:true });
+
+/* ---- the evolution: each host migrates on its own clock ---- */
+function migrate(h){
+  const wait = 9000 + Math.random()*9000;   // ~10-18s between moves, per piece
+  setTimeout(() => {
+    // don't move a piece the visitor is looking at
+    const hovered = h.fig.matches(':hover') || (h.child && h.child.fig.matches(':hover'));
+    if(hovered || box.classList.contains('open')){
+      migrate(h);   // try again later
+      return;
+    }
+    h.fig.classList.add('moving');
+    if(h.child) h.child.fig.classList.add('moving');
+    setTimeout(() => {
+      place(h, Math.random);               // new spot, new size, while invisible
+      h.fig.classList.remove('moving');
+      if(h.child) h.child.fig.classList.remove('moving');
+      migrate(h);
+    }, FADE + 150);
+  }, wait);
+}
+if(!reduced) hosts.forEach(migrate);
 
 /* ---- lightbox ---- */
 const box = document.getElementById('box');
