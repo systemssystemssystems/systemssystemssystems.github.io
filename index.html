@@ -71,12 +71,9 @@ body{
 }
 
 /* ---- the title: VT323, emerging from blur, then quietly failing ----
-   The glitch is three layers: the word itself flickers like a tired
-   CRT, and two ghost copies of it flash offset left/right for a
-   frame or two, every few seconds. Tune to taste:
-     - flicker depth: the opacity dips inside @keyframes flicker
-     - glitch frequency: the animation durations (7s / 7s below)
-     - glitch violence: the translateX distances in the ghost frames */
+   Tune: flicker depth = opacity dips in @keyframes flicker
+         frequency    = the 7s durations
+         violence     = translateX distances in the ghost frames */
 .intro h1{
   font-family:'VT323', monospace;
   font-size:8.4vw;
@@ -108,7 +105,6 @@ body{
   to{ opacity:1; filter:blur(0); }
 }
 
-/* the word itself: mostly steady, brief dips like a failing tube */
 @keyframes flicker{
   0%, 100% { opacity:1; }
   11%   { opacity:.55; }
@@ -124,8 +120,6 @@ body{
   83.5% { opacity:1; }
 }
 
-/* ghost copies: invisible except split-second offset flashes,
-   timed to coincide with the flicker dips above */
 @keyframes ghostL{
   0%, 100% { opacity:0; transform:none; }
   11%   { opacity:.35; transform:translateX(-4px); }
@@ -151,15 +145,28 @@ body{
   cursor:pointer;
   will-change:transform;
 }
+
+/* ---- the hum: each piece slowly breathes in and out of the dark.
+   Every image gets its own random duration and phase (set in the
+   script), so they pulse out of sync — like current moving through
+   different lines. Tune the depth by changing the .45 below:
+   lower = fades further out, higher = gentler. */
 .piece img{
   display:block; width:100%; height:auto;
-  filter:brightness(.78);
-  box-shadow:0 30px 90px rgba(0,0,0,.75);
-  transition:filter .45s ease, box-shadow .45s ease;
+  filter:brightness(.82);
+  box-shadow:0 26px 70px rgba(0,0,0,.7);
+  animation:hum var(--humDur, 6s) ease-in-out var(--humDelay, 0s) infinite alternate;
 }
+@keyframes hum{
+  from{ opacity:.45; }
+  to{   opacity:1; }
+}
+
 .piece:hover img, .piece:focus-visible img{
+  animation:none;
+  opacity:1;
   filter:brightness(1);
-  box-shadow:0 0 0 1px var(--hot), 0 40px 100px rgba(0,0,0,.8);
+  box-shadow:0 0 0 1px var(--hot), 0 30px 80px rgba(0,0,0,.8);
 }
 .piece:hover{ z-index:30 !important; }
 .piece:focus-visible{ outline:1px solid var(--hot); outline-offset:6px; z-index:30 !important; }
@@ -218,6 +225,7 @@ body{
   .intro h1{ animation:emerge 0s forwards; opacity:1; }
   .intro h1::before, .intro h1::after{ animation:none; opacity:0; }
   .piece{ transform:none !important; }
+  .piece img{ animation:none; opacity:1; }
 }
 
 @media (max-width:640px){
@@ -256,16 +264,17 @@ body{
    Filenames must exactly match the files in your images folder.
    ================================================================ */
 const WORKS = [
-  { src:"images/3.2.png", title:"pylon i",     year:"2026" },
-  { src:"images/7.2.png", title:"lattice i",   year:"2026" },
-  { src:"images/1.2.png", title:"lattice ii",  year:"2026" },
-  { src:"images/4.3.png", title:"chaos bloom", year:"2026" },
+  { src:"images/1.2.png", title:"pylon i",     year:"2026" },
+  { src:"images/4.2.png", title:"lattice i",   year:"2026" },
+  { src:"images/4.3.png", title:"lattice ii",  year:"2026" },
+  { src:"images/7.3.png", title:"chaos bloom", year:"2026" },
   { src:"images/8.2.png", title:"vertebrae",   year:"2026" },
 ];
 
 /* ================================================================
-   Layout: no tilts. Big pieces stacked with heavy overlap; every
-   third piece is small and nested inside the previous big one.
+   Layout: no tilts. Smaller pieces, more size variety, partial
+   overlaps (nothing fully buried). Every third piece is small and
+   nested inside the previous big one.
    ================================================================ */
 
 function mulberry32(seed){
@@ -282,7 +291,7 @@ const field = document.getElementById('field');
 const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const stepVh = mobile ? 46 : 50;
+const stepVh = mobile ? 54 : 60;     // bigger step = lighter overlap
 const pieces = [];
 
 let ycursor = 8;
@@ -297,15 +306,17 @@ WORKS.forEach((work, i) => {
   let w, x, y, z, drift;
 
   if(isSmall){
-    w = mobile ? 24 + rand()*10 : 12 + rand()*9;
+    // nested piece: sits inside the previous big one
+    w = mobile ? 20 + rand()*8 : 10 + rand()*7;
     x = prev.x + rand() * Math.max(prev.w - w, 3);
     y = prev.y + 10 + rand()*14;
     z = prev.z + 5;
     drift = prev.drift;
   } else {
-    w = mobile ? 66 + rand()*26 : 36 + rand()*24;
+    // main pieces: smaller overall, wide size variety piece-to-piece
+    w = mobile ? 46 + rand()*28 : 20 + rand()*24;
     x = 4 + rand()*(88 - w);
-    y = ycursor + rand()*12;
+    y = ycursor + rand()*10;
     z = Math.floor(rand()*20);
     drift = reduced ? 0 : (rand()*0.14 - 0.04);
     ycursor += stepVh;
@@ -317,6 +328,10 @@ WORKS.forEach((work, i) => {
   fig.style.top   = y + 'vh';
   fig.style.zIndex = z;
   fig.dataset.drift = drift;
+
+  // each piece hums at its own speed and phase
+  fig.style.setProperty('--humDur', (4 + rand()*5).toFixed(2) + 's');
+  fig.style.setProperty('--humDelay', (-rand()*8).toFixed(2) + 's');
 
   const num = String(WORKS.length - i).padStart(2,'0');
   fig.innerHTML = `
