@@ -141,7 +141,6 @@ body{
   opacity:1;
   transition:opacity 3.4s ease;   /* the slow dissolve when a piece migrates */
 }
-/* while a piece is mid-migration it's invisible and unclickable */
 .piece.moving{
   opacity:0 !important;
   pointer-events:none;
@@ -261,6 +260,7 @@ body{
    ================================================================ */
 const WORKS = [
   { src:"images/1.2.png", title:"pylon i",     year:"2026" },
+  { src:"images/3.2.png", title:"pylon i",     year:"2026" },
   { src:"images/a.png",   title:"pylon i",     year:"2026" },
   { src:"images/b.png",   title:"pylon i",     year:"2026" },
   { src:"images/c.png",   title:"pylon i",     year:"2026" },
@@ -269,6 +269,7 @@ const WORKS = [
   { src:"images/f.png",   title:"pylon i",     year:"2026" },
   { src:"images/g.png",   title:"pylon i",     year:"2026" },
   { src:"images/h.png",   title:"pylon i",     year:"2026" },
+  { src:"images/i.png",   title:"pylon i",     year:"2026" },
   { src:"images/4.2.png", title:"lattice i",   year:"2026" },
   { src:"images/4.3.png", title:"lattice ii",  year:"2026" },
   { src:"images/7.3.png", title:"chaos bloom", year:"2026" },
@@ -277,16 +278,16 @@ const WORKS = [
 
 /* ================================================================
    Layout + evolution.
-   Pieces are placed as before (no tilts, size variety, every third
-   piece nested in the previous big one) — but now each piece also
-   MIGRATES on its own clock: every ~10-18 seconds it slowly fades
-   out, silently moves to a new spot in its zone with a new size,
-   and slowly fades back in. Nested pairs travel together. The page
-   never rearranges all at once — it evolves piece by piece.
+   Each piece migrates on its own clock: every ~10-18s it slowly
+   fades out, moves to a completely new spot ANYWHERE on the page
+   with a freshly rolled size, and fades back in. Nested pairs
+   travel together. Nothing is safe — pieces move even while you
+   are looking at them.
 
    Tuning:
-     FADE            — dissolve length (ms), matches the CSS 3.4s
-     9000 + ...*9000 — time between migrations per piece (ms)
+     FADE              — dissolve length (ms), matches the CSS 3.4s
+     9000 + ...*9000   — time between migrations per piece (ms)
+     SIZE ranges       — in the place() function below
    ================================================================ */
 
 const FADE = 3400;
@@ -306,24 +307,28 @@ const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const stepVh = mobile ? 54 : 60;
-const pieces = [];   // for the parallax
-const hosts = [];    // big pieces (each may carry one nested child)
+const pieces = [];
+const hosts = [];
 
-let ycursor = 8;
 let lastHost = null;
 
-/* give a host (and its nested child, if any) a fresh geometry */
+/* total height of the field, in vh — pieces can land anywhere within it */
+const bigCount = WORKS.length - Math.floor(WORKS.length / 3);
+const fieldVh = bigCount * stepVh + 55;
+
+/* give a host (and its nested child, if any) fresh geometry —
+   new size from the range, new position anywhere on the page */
 function place(h, R){
-  h.w = mobile ? 46 + R()*28 : 20 + R()*24;
+  h.w = mobile ? 42 + R()*34 : 16 + R()*32;        // size re-rolled every move
   h.x = 4 + R()*(88 - h.w);
-  h.y = h.band + R()*10;
+  h.y = 6 + R()*(fieldVh - 50);                    // anywhere, top to bottom
   h.z = Math.floor(R()*20);
   apply(h.fig, h);
   if(h.child){
     const c = h.child;
-    c.w = mobile ? 20 + R()*8 : 10 + R()*7;
+    c.w = mobile ? 16 + R()*12 : 8 + R()*10;       // child size re-rolled too
     c.x = h.x + R() * Math.max(h.w - c.w, 3);
-    c.y = h.y + 10 + R()*14;
+    c.y = h.y + 8 + R()*14;
     c.z = h.z + 5;
     apply(c.fig, c);
   }
@@ -361,12 +366,10 @@ WORKS.forEach((work, i) => {
   } else {
     const h = {
       fig,
-      band: ycursor,
       drift: reduced ? 0 : (seeded()*0.14 - 0.04),
       child: null
     };
     fig.dataset.drift = h.drift;
-    ycursor += stepVh;
     hosts.push(h);
     lastHost = h;
   }
@@ -375,7 +378,7 @@ WORKS.forEach((work, i) => {
 /* first arrangement, from the seed */
 hosts.forEach(h => place(h, seeded));
 
-field.style.height = (ycursor + 55) + 'vh';
+field.style.height = fieldVh + 'vh';
 
 /* parallax drift */
 function drift(){
@@ -387,20 +390,15 @@ function drift(){
 drift();
 if(!reduced) window.addEventListener('scroll', () => requestAnimationFrame(drift), { passive:true });
 
-/* ---- the evolution: each host migrates on its own clock ---- */
+/* ---- the evolution: each host migrates on its own clock,
+        regardless of who's watching ---- */
 function migrate(h){
   const wait = 9000 + Math.random()*9000;   // ~10-18s between moves, per piece
   setTimeout(() => {
-    // don't move a piece the visitor is looking at
-    const hovered = h.fig.matches(':hover') || (h.child && h.child.fig.matches(':hover'));
-    if(hovered || box.classList.contains('open')){
-      migrate(h);   // try again later
-      return;
-    }
     h.fig.classList.add('moving');
     if(h.child) h.child.fig.classList.add('moving');
     setTimeout(() => {
-      place(h, Math.random);               // new spot, new size, while invisible
+      place(h, Math.random);                // new spot, new size, while invisible
       h.fig.classList.remove('moving');
       if(h.child) h.child.fig.classList.remove('moving');
       migrate(h);
