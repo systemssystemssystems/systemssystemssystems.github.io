@@ -265,7 +265,15 @@ body{
    ================================================================ */
 const WORKS = [
   { src:"images/1.2.png", title:"pylon i",     year:"2026" },
-  { src:"images/4.2.png", title:"lattice i",   year:"2026" },
+  { src:"images/a.png", title:"pylon i",     year:"2026" },
+  { src:"images/b.png", title:"pylon i",     year:"2026" }, 
+  { src:"images/c.png", title:"pylon i",     year:"2026" }, 
+  { src:"images/d.png", title:"pylon i",     year:"2026" }, 
+  { src:"images/e.png", title:"pylon i",     year:"2026" }, 
+  { src:"images/f.png", title:"pylon i",     year:"2026" }, 
+  { src:"images/g.png", title:"pylon i",     year:"2026" },
+   { src:"images/i.png", title:"pylon i",     year:"2026" },
+  { src:"images/h.2.png", title:"lattice i",   year:"2026" },
   { src:"images/4.3.png", title:"lattice ii",  year:"2026" },
   { src:"images/7.3.png", title:"chaos bloom", year:"2026" },
   { src:"images/8.2.png", title:"vertebrae",   year:"2026" },
@@ -285,13 +293,13 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rand = mulberry32(20260713);   // change to reshuffle the whole arrangement
+const rand = mulberry32(20270713);   // change to reshuffle the whole arrangement
 
 const field = document.getElementById('field');
 const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const stepVh = mobile ? 54 : 60;     // bigger step = lighter overlap
+const stepVh = mobile ? 54 : 45;     // bigger step = lighter overlap
 const pieces = [];
 
 let ycursor = 8;
