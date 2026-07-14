@@ -53,10 +53,12 @@ body{
 .mark.tr{ top:18px; right:22px; text-align:right; }
 
 /* ---- opening screen ---- */
-.intro{
-  height:100vh;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
+.intro h1{
+  font-family:'VT323', monospace;
+  font-size:16vw;          /* was 8.4vw — bigger, since each storey is one word now */
+  letter-spacing:.02em;
+  line-height:.82;         /* was 1 — pulls the storeys tight together */
+  ...everything else stays exactly as it is...
 }
 
 /* ---- the title ----
@@ -80,7 +82,7 @@ body{
 }
 .intro h1 span{
   position:relative;
-  display:inline;
+  display:block;
 }
 .intro h1 span::before,
 .intro h1 span::after{
