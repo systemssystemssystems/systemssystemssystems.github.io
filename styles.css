@@ -227,8 +227,6 @@ body{
    MOBILE — its own treatment, not the desktop squeezed thin
    ================================================================ */
 @media (max-width:640px){
-  .mark.tr{ display:none; }
-
   /* the title becomes a stacked tower — three storeys of SYSTEMS */
   .intro h1{
     font-size:23vw;
@@ -244,3 +242,42 @@ body{
      dark detail anyway */
   .piece img{ box-shadow:0 14px 36px rgba(0,0,0,.6); }
 }
+
+/* ================================================================
+   NAVIGATION LINKS + THE GRID PAGE
+   ================================================================ */
+.mark a, .fin a{
+  color:var(--dim); text-decoration:none;
+  border-bottom:1px solid transparent;
+  transition:color .3s ease, border-color .3s ease;
+}
+.mark a:hover, .fin a:hover{ color:var(--hot); border-bottom-color:var(--hot); }
+.fin{ flex-direction:column; gap:18px; }
+
+/* ---- grid page ---- */
+.gridpage{ padding:14vh 6vw 12vh; }
+.gridhead{
+  font-size:11px; letter-spacing:.34em;
+  color:var(--dim); text-transform:lowercase;
+  margin-bottom:6vh;
+}
+.grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:26px; }
+@media (max-width:1100px){ .grid{ grid-template-columns:repeat(3, 1fr); } }
+@media (max-width:640px){  .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; } }
+
+.tile{ cursor:pointer; }
+.tile img{
+  display:block; width:100%;
+  aspect-ratio:1/1; object-fit:cover;   /* uniform squares; change to 3/4 for portrait tiles */
+  filter:brightness(.82);
+  transition:filter .3s ease, box-shadow .3s ease;
+}
+.tile:hover img, .tile:focus-visible img{
+  filter:brightness(1);
+  box-shadow:0 0 0 1px var(--hot);
+}
+.tile figcaption{
+  margin-top:8px; font-size:10px; letter-spacing:.22em;
+  color:var(--dim); text-transform:lowercase;
+}
+.tile figcaption b{ color:var(--hot); font-weight:400; margin-right:.8em; }

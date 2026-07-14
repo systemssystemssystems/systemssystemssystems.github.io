@@ -1,0 +1,22 @@
+/* YOUR IMAGES — newest at the top. The only file you edit day-to-day. */
+const WORKS = [
+  { src:"images/1.2.png", title:"pylon 12",    year:"2026" },
+  { src:"images/3.2.png", title:"pylon 32",    year:"2026" },
+  { src:"images/4.3.png", title:"lattice i",   year:"2026" },
+  { src:"images/2.2.png", title:"lattice ii",  year:"2026" },
+  { src:"images/7.2.png", title:"chaos bloom", year:"2026" },
+  { src:"images/8.2.png", title:"vertebrae",   year:"2026" },
+  { src:"images/a.png",   title:"pylon a",     year:"2026" },
+  { src:"images/b.png",   title:"pylon b",     year:"2026" },
+  { src:"images/c.png",   title:"pylon c",     year:"2026" },
+  { src:"images/d.png",   title:"pylon d",     year:"2026" },
+  { src:"images/e.png",   title:"pylon e",     year:"2026" },
+  { src:"images/f.png",   title:"pylon f",     year:"2026" },
+  { src:"images/g.png",   title:"pylon g",     year:"2026" },
+  { src:"images/h.jpeg",  title:"pylon h",     year:"2026" },
+  { src:"images/i.jpeg",  title:"pylon i",     year:"2026" },
+  { src:"images/j.png",   title:"pylon j",     year:"2026" },
+  { src:"images/k.png",   title:"pylon k",     year:"2026" },
+  { src:"images/l.png",   title:"pylon l",     year:"2026" },
+  { src:"images/m.png",   title:"pylon m",     year:"2026" },
+];
