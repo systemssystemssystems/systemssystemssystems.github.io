@@ -19,7 +19,7 @@ const WORKS = [
   { src:"images/k.png",   title:"pylon k",     year:"2026" },
   { src:"images/l.png",   title:"pylon l",     year:"2026" },
   { src:"images/m.png",   title:"pylon m",     year:"2026" },
-  { src:"images/m.png",   title:"pylon n",     year:"2026" },
-  { src:"images/m.png",   title:"pylon o",     year:"2026" },
-  { src:"images/m.png",   title:"pylon p",     year:"2026" },
+  { src:"images/n.png",   title:"pylon n",     year:"2026" },
+  { src:"images/o.png",   title:"pylon o",     year:"2026" },
+  { src:"images/p.png",   title:"pylon p",     year:"2026" },
 ];
