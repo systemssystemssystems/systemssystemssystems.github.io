@@ -28,7 +28,7 @@ const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* tighter vertical rhythm on mobile = denser, less dead space */
-const stepVh = mobile ? 38 : 60;
+const stepVh = mobile ? 38 : 45;
 const pieces = [];
 const hosts = [];
 
@@ -40,7 +40,7 @@ const fieldVh = bigCount * stepVh + 55;
 function place(h, R){
   /* mobile pieces run bigger relative to the screen — small
      fragments that work on desktop just read as clutter on a phone */
-  h.w = mobile ? 54 + R()*36 : 16 + R()*32;
+  h.w = mobile ? 22 + R()*30 : 16 + R()*32;
   h.x = 2 + R()*Math.max(92 - h.w, 2);
   h.y = 6 + R()*(fieldVh - 50);
   h.z = Math.floor(R()*20);
