@@ -15,8 +15,10 @@ html{ background:var(--ground); }
 
 body{
   background:
-    radial-gradient(130vw 90vh at 50% -20%, var(--smoke) 0%, transparent 60%),
+    radial-gradient(130vw 90vh at 50% -20%, rgba(18,18,21,.5) 0%, transparent 60%),
+    url("images/texture.png") repeat,
     var(--ground);
+  background-size: auto, 500px, auto;
   color:var(--bone);
   font-family:'IBM Plex Mono', monospace;
   overflow-x:hidden;
