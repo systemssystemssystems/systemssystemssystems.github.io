@@ -53,28 +53,28 @@ body{
 .mark.tr{ top:18px; right:22px; text-align:right; }
 
 /* ---- opening screen ---- */
-.intro h1{
-  font-family:'VT323', monospace;
-  font-size:20vw;          /* was 8.4vw — bigger, since each storey is one word now */
-  letter-spacing:.02em;
-  line-height:.82;         /* was 1 — pulls the storeys tight together */
-  ...everything else stays exactly as it is...
+.intro{
+  height:100vh;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
 }
 
 /* ---- the title ----
-   Built as three "systems" segments: one line on desktop,
-   stacked into a tower on mobile. Each segment carries its own
-   glitch ghosts. */
+   A stacked tower of three "systems" storeys on ALL screens.
+   Each storey carries its own glitch ghosts on an offset clock.
+   Desktop size is set here; mobile size is set in the media
+   query at the bottom of this file. */
 .intro h1{
   font-family:'VT323', monospace;
-  font-size:8.4vw;
+  font-size:16vw;
   letter-spacing:.02em;
-  line-height:1;
+  line-height:.82;
   font-weight:400;
   color:var(--bone);
   text-transform:uppercase;
   white-space:nowrap;
   text-align:center;
+  position:relative;
   opacity:0;
   animation:
     emerge 2s ease .3s forwards,
@@ -94,7 +94,7 @@ body{
 }
 .intro h1 span::before{ animation:ghostL 7s steps(1) 2.6s infinite; }
 .intro h1 span::after{  animation:ghostR 7s steps(1) 2.6s infinite; }
-/* each segment glitches on its own offset clock */
+/* each storey glitches on its own offset clock */
 .intro h1 span:nth-child(2)::before,
 .intro h1 span:nth-child(2)::after{ animation-delay:4.1s; }
 .intro h1 span:nth-child(3)::before,
@@ -184,6 +184,7 @@ body{
 .fin{
   height:60vh;
   display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:18px;
   font-size:11px; letter-spacing:.34em;
   color:var(--dim); text-transform:lowercase;
 }
@@ -219,44 +220,13 @@ body{
 }
 .nav.prev{ left:0; } .nav.next{ right:0; }
 
-@media (prefers-reduced-motion: reduce){
-  .grain{ animation:none; }
-  .intro h1{ animation:emerge 0s forwards; opacity:1; }
-  .intro h1 span::before, .intro h1 span::after{ animation:none; opacity:0; }
-  .piece{ transform:none !important; transition:none; }
-  .piece img{ animation:none; opacity:1; }
-}
-
-/* ================================================================
-   MOBILE — its own treatment, not the desktop squeezed thin
-   ================================================================ */
-@media (max-width:640px){
-  /* the title becomes a stacked tower — three storeys of SYSTEMS */
-  .intro h1{
-    font-size:23vw;
-    line-height:.82;
-    letter-spacing:.03em;
-  }
-  .intro h1 span{ display:block; }
-
-  /* captions can't be hovered on a phone — show them faintly, always */
-  .piece figcaption{ opacity:.55; font-size:9px; }
-
-  /* lighter shadows: cheaper to render, and phone screens crush
-     dark detail anyway */
-  .piece img{ box-shadow:0 14px 36px rgba(0,0,0,.6); }
-}
-
-/* ================================================================
-   NAVIGATION LINKS + THE GRID PAGE
-   ================================================================ */
+/* ---- navigation links ---- */
 .mark a, .fin a{
   color:var(--dim); text-decoration:none;
   border-bottom:1px solid transparent;
   transition:color .3s ease, border-color .3s ease;
 }
 .mark a:hover, .fin a:hover{ color:var(--hot); border-bottom-color:var(--hot); }
-.fin{ flex-direction:column; gap:18px; }
 
 /* ---- grid page ---- */
 .gridpage{ padding:14vh 6vw 12vh; }
@@ -267,7 +237,6 @@ body{
 }
 .grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:26px; }
 @media (max-width:1100px){ .grid{ grid-template-columns:repeat(3, 1fr); } }
-@media (max-width:640px){  .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; } }
 
 .tile{ cursor:pointer; }
 .tile img{
@@ -285,3 +254,33 @@ body{
   color:var(--dim); text-transform:lowercase;
 }
 .tile figcaption b{ color:var(--hot); font-weight:400; margin-right:.8em; }
+
+@media (prefers-reduced-motion: reduce){
+  .grain{ animation:none; }
+  .intro h1{ animation:emerge 0s forwards; opacity:1; }
+  .intro h1 span::before, .intro h1 span::after{ animation:none; opacity:0; }
+  .piece{ transform:none !important; transition:none; }
+  .piece img{ animation:none; opacity:1; }
+}
+
+/* ================================================================
+   MOBILE — last in the file so it always wins on small screens
+   ================================================================ */
+@media (max-width:640px){
+  /* the title tower, sized for phones */
+  .intro h1{
+    font-size:23vw;
+    line-height:.82;
+    letter-spacing:.03em;
+  }
+
+  /* captions can't be hovered on a phone — show them faintly, always */
+  .piece figcaption{ opacity:.55; font-size:9px; }
+
+  /* lighter shadows: cheaper to render, and phone screens crush
+     dark detail anyway */
+  .piece img{ box-shadow:0 14px 36px rgba(0,0,0,.6); }
+
+  /* grid page: two columns on phones */
+  .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+}
