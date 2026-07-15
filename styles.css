@@ -64,7 +64,7 @@ body{
    Each storey carries its own glitch ghosts on an offset clock.
    Desktop size is set here; mobile size is set in the media
    query at the bottom of this file. */
-.intro h1{
+h1.planetitle{
   font-family:'VT323', monospace;
   font-size:16vw;
   letter-spacing:.02em;
@@ -74,31 +74,33 @@ body{
   text-transform:uppercase;
   white-space:nowrap;
   text-align:center;
-  position:relative;
+  position:absolute; left:0; top:0;   /* the engine moves it */
+  will-change:transform;
+  pointer-events:none;
   opacity:0;
   animation:
     emerge 2s ease .3s forwards,
     flicker 7s steps(1) 2.6s infinite;
 }
-.intro h1 span{
+h1.planetitle span{
   position:relative;
   display:block;
 }
-.intro h1 span::before,
-.intro h1 span::after{
+h1.planetitle span::before,
+h1.planetitle span::after{
   content:attr(data-text);
   position:absolute; inset:0;
   color:var(--bone);
   opacity:0;
   pointer-events:none;
 }
-.intro h1 span::before{ animation:ghostL 7s steps(1) 2.6s infinite; }
-.intro h1 span::after{  animation:ghostR 7s steps(1) 2.6s infinite; }
+h1.planetitle span::before{ animation:ghostL 7s steps(1) 2.6s infinite; }
+h1.planetitle span::after{  animation:ghostR 7s steps(1) 2.6s infinite; }
 /* each storey glitches on its own offset clock */
-.intro h1 span:nth-child(2)::before,
-.intro h1 span:nth-child(2)::after{ animation-delay:4.1s; }
-.intro h1 span:nth-child(3)::before,
-.intro h1 span:nth-child(3)::after{ animation-delay:5.7s; }
+h1.planetitle span:nth-child(2)::before,
+h1.planetitle span:nth-child(2)::after{ animation-delay:4.1s; }
+h1.planetitle span:nth-child(3)::before,
+h1.planetitle span:nth-child(3)::after{ animation-delay:5.7s; }
 
 @keyframes emerge{
   from{ opacity:0; filter:blur(12px); }
@@ -308,12 +310,48 @@ button.mark:hover{ color:var(--hot); }
 
 @media (prefers-reduced-motion: reduce){
   .grain{ animation:none; }
-  .intro h1{ animation:emerge 0s forwards; opacity:1; }
-  .intro h1 span::before, .intro h1 span::after{ animation:none; opacity:0; }
-  .piece{ transform:none !important; transition:none; }
+  h1.planetitle{ animation:emerge 0s forwards; opacity:1; }
+  h1.planetitle span::before, h1.planetitle span::after{ animation:none; opacity:0; }
+  .piece{ transition:none; }
   .piece img{ animation:none; opacity:1; }
   .piece::after{ animation:none; opacity:0 !important; }
 }
+
+
+/* ================================================================
+   THE PLANE — a fixed viewport onto infinite wrapping space
+   ================================================================ */
+body.planepage{
+  position:fixed; inset:0; width:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+.plane{
+  position:fixed; inset:0;
+  overflow:hidden;
+  touch-action:none;         /* we handle all dragging ourselves */
+  cursor:grab;
+}
+.plane.dragging{ cursor:grabbing; }
+.plane .piece{ left:0; top:0; }             /* engine positions via transform */
+.piece img{
+  -webkit-user-drag:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* the one-time invitation */
+.hint{
+  position:fixed; left:50%;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:40;
+  font-size:11px; letter-spacing:.3em;
+  color:var(--dim); text-transform:lowercase;
+  transition:opacity 1.2s ease;
+  pointer-events:none;
+}
+.hint.gone{ opacity:0; }
 
 /* ================================================================
    MOBILE — last in the file so it always wins on small screens
@@ -327,7 +365,7 @@ button.mark:hover{ color:var(--hot); }
   }
 
   /* the title tower, sized for phones */
-  .intro h1{
+  h1.planetitle{
     font-size:23vw;
     line-height:.82;
     letter-spacing:.03em;
