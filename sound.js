@@ -10,8 +10,17 @@
    ================================================================ */
 
 (function(){
-  const VOLUME = 0.16;
-  const HARMONICS = [[50, .50], [100, .28], [150, .14], [250, .05]];
+  /* phones can't physically reproduce 50Hz, so on small screens the
+     hum is re-voiced up into the 200-500Hz register — less mains
+     drone, more transformer whine. Same soul, singable by a phone. */
+  const mobileAudio = window.matchMedia('(max-width: 640px)').matches;
+
+  const VOLUME = mobileAudio ? 0.20 : 0.16;
+  const HARMONICS = mobileAudio
+    ? [[200, .40], [201.5, .18], [300, .26], [400, .16], [520, .07]]
+    : [[50, .50], [100, .28], [150, .14], [250, .05]];
+  /* (the 201.5 slightly detunes against 200, giving the whine a
+     slow shimmering beat, like two windings not quite agreeing) */
 
   const toggle = document.getElementById('soundToggle');
   if(!toggle) return;
@@ -30,7 +39,7 @@
 
     const lowpass = ctx.createBiquadFilter();
     lowpass.type = 'lowpass';
-    lowpass.frequency.value = 900;
+    lowpass.frequency.value = mobileAudio ? 1600 : 900;
 
     master.connect(breath);
     breath.connect(lowpass);
@@ -53,11 +62,13 @@
     const buf = ctx.createBuffer(1, N, ctx.sampleRate);
     const d = buf.getChannelData(0);
     let lp1 = 0, lp2 = 0;
+    const coef = mobileAudio ? .08 : .02;   /* brighter static on phones */
+    const makeup = mobileAudio ? 3.2 : 6;
     for(let i = 0; i < N; i++){
       const x = Math.random() * 2 - 1;
-      lp1 += .02 * (x - lp1);
-      lp2 += .02 * (lp1 - lp2);
-      d[i] = lp2 * 6;
+      lp1 += coef * (x - lp1);
+      lp2 += coef * (lp1 - lp2);
+      d[i] = lp2 * makeup;
     }
     const F = (ctx.sampleRate / 2) | 0;
     for(let j = 0; j < F; j++){
@@ -120,7 +131,7 @@
       nodes.lfoGain.gain.linearRampToValueAtTime(on ? .16 : .09, t + 1.4);
       nodes.lowpass.frequency.cancelScheduledValues(t);
       nodes.lowpass.frequency.setValueAtTime(nodes.lowpass.frequency.value, t);
-      nodes.lowpass.frequency.linearRampToValueAtTime(on ? 1500 : 900, t + 1.4);
+      nodes.lowpass.frequency.linearRampToValueAtTime(on ? (mobileAudio ? 2300 : 1500) : (mobileAudio ? 1600 : 900), t + 1.4);
     }
   };
 

@@ -319,6 +319,13 @@ button.mark:hover{ color:var(--hot); }
    MOBILE — last in the file so it always wins on small screens
    ================================================================ */
 @media (max-width:640px){
+  /* sound toggle on phones: bottom-right, lifted clear of browser
+     toolbars (safe-area) so it can't collide with anything */
+  .mark.bl{
+    left:auto; right:22px; top:auto;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+  }
+
   /* the title tower, sized for phones */
   .intro h1{
     font-size:23vw;
