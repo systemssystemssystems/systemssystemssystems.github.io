@@ -220,6 +220,27 @@ body{
 }
 .nav.prev{ left:0; } .nav.next{ right:0; }
 
+
+/* ---- sound toggle (bottom-left corner) ---- */
+button.mark{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px; letter-spacing:.18em;
+  color:var(--dim); text-transform:lowercase;
+  background:none; border:none; padding:0;
+  cursor:pointer;
+}
+button.mark:hover{ color:var(--hot); }
+.mark.bl{ bottom:16px; left:22px; top:auto; }
+.mark.bl.playing::before{
+  content:'\25CF  ';
+  color:var(--hot);
+  animation:soundpulse 4s ease-in-out infinite;
+}
+@keyframes soundpulse{
+  0%, 100% { opacity:.25; }
+  50%      { opacity:.8; }
+}
+
 /* ---- navigation links ---- */
 .mark a, .fin a{
   color:var(--dim); text-decoration:none;
