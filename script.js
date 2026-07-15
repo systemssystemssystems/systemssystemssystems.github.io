@@ -21,14 +21,14 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const seeded = mulberry32(20260733);
+const seeded = mulberry32(20260713);
 
 const field = document.getElementById('field');
 const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* tighter vertical rhythm on mobile = denser, less dead space */
-const stepVh = mobile ? 38 : 45;
+const stepVh = mobile ? 38 : 60;
 const pieces = [];
 const hosts = [];
 
@@ -40,7 +40,7 @@ const fieldVh = bigCount * stepVh + 55;
 function place(h, R){
   /* mobile pieces run bigger relative to the screen — small
      fragments that work on desktop just read as clutter on a phone */
-  h.w = mobile ? 22 + R()*30 : 16 + R()*32;
+  h.w = mobile ? 54 + R()*36 : 16 + R()*32;
   h.x = 2 + R()*Math.max(92 - h.w, 2);
   h.y = 6 + R()*(fieldVh - 50);
   h.z = Math.floor(R()*20);
@@ -122,6 +122,61 @@ function migrate(h){
   }, wait);
 }
 if(!reduced) hosts.forEach(migrate);
+
+/* ================================================================
+   REACTIVITY (desktop pointers only; skipped on touch screens and
+   for reduced motion, so nothing breaks elsewhere)
+
+   1. Edge static: each piece's --staticAmt rises as the cursor
+      nears it, fizzing its edges with noise.
+   2. Linger: hover a piece for half a second and it's marked
+      .linger (faster flutter) and, if the sound is on, the hum
+      itself quickens via window.__hum.
+   ================================================================ */
+const pointerFine = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+
+if(pointerFine && !reduced){
+  /* --- 1. edge static, driven by cursor proximity --- */
+  const RANGE = 260;      /* px — how far the fizz reaches */
+  const MAXSTATIC = .5;   /* peak overlay opacity at touch */
+  let mx = -9e4, my = -9e4, queued = false;
+
+  function updateStatic(){
+    queued = false;
+    for(const p of pieces){
+      const r = p.getBoundingClientRect();
+      if(r.bottom < -100 || r.top > innerHeight + 100){
+        p.style.setProperty('--staticAmt', 0);
+        continue;
+      }
+      /* distance from cursor to the nearest point of the piece */
+      const dx = Math.max(r.left - mx, 0, mx - r.right);
+      const dy = Math.max(r.top - my, 0, my - r.bottom);
+      const d = Math.hypot(dx, dy);
+      const amt = Math.max(0, 1 - d / RANGE) * MAXSTATIC;
+      p.style.setProperty('--staticAmt', amt.toFixed(3));
+    }
+  }
+  function queue(){ if(!queued){ queued = true; requestAnimationFrame(updateStatic); } }
+  window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; queue(); }, { passive:true });
+  window.addEventListener('scroll', queue, { passive:true });
+
+  /* --- 2. linger detection --- */
+  pieces.forEach(fig => {
+    let timer;
+    fig.addEventListener('mouseenter', () => {
+      timer = setTimeout(() => {
+        fig.classList.add('linger');
+        if(window.__hum) window.__hum.excite(true);
+      }, 500);
+    });
+    fig.addEventListener('mouseleave', () => {
+      clearTimeout(timer);
+      fig.classList.remove('linger');
+      if(window.__hum) window.__hum.excite(false);
+    });
+  });
+}
 
 /* ---- lightbox ---- */
 const box = document.getElementById('box');

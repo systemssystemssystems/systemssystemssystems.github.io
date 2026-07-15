@@ -16,7 +16,7 @@
   const toggle = document.getElementById('soundToggle');
   if(!toggle) return;
 
-  let ctx = null, master = null, playing = false, suspendTimer = null;
+  let ctx = null, master = null, playing = false, suspendTimer = null, nodes = null;
 
   function build(){
     ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -81,6 +81,9 @@
     lfo.connect(lfoGain);
     lfoGain.connect(breath.gain);
     lfo.start();
+
+    /* remember the excitable parts */
+    nodes = { lfo, lfoGain, lowpass };
   }
 
   async function soundOn(){
@@ -100,6 +103,26 @@
     master.gain.linearRampToValueAtTime(0, t + 1.5);         /* slow fade out */
     suspendTimer = setTimeout(() => ctx.suspend(), 1700);    /* then sleep, saves battery */
   }
+
+  /* ---- excitement: lingering on a piece quickens the hum ----
+     Called by script.js. The breathing speeds up, wobbles harder,
+     and the filter opens slightly — like current rising. Everything
+     ramps smoothly, and it's a no-op if sound is off. */
+  window.__hum = {
+    excite(on){
+      if(!ctx || !nodes || !playing) return;
+      const t = ctx.currentTime;
+      nodes.lfo.frequency.cancelScheduledValues(t);
+      nodes.lfo.frequency.setValueAtTime(nodes.lfo.frequency.value, t);
+      nodes.lfo.frequency.linearRampToValueAtTime(on ? .95 : .25, t + 1.4);
+      nodes.lfoGain.gain.cancelScheduledValues(t);
+      nodes.lfoGain.gain.setValueAtTime(nodes.lfoGain.gain.value, t);
+      nodes.lfoGain.gain.linearRampToValueAtTime(on ? .16 : .09, t + 1.4);
+      nodes.lowpass.frequency.cancelScheduledValues(t);
+      nodes.lowpass.frequency.setValueAtTime(nodes.lowpass.frequency.value, t);
+      nodes.lowpass.frequency.linearRampToValueAtTime(on ? 1500 : 900, t + 1.4);
+    }
+  };
 
   toggle.addEventListener('click', () => {
     playing = !playing;
