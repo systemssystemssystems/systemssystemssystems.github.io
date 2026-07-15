@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body class="gridbody">
+<body class="canvasbody">
 
 <div class="grain" aria-hidden="true"></div>
 
@@ -18,8 +18,12 @@
 <div class="mark tr"><a href="index.html">&larr; field</a></div>
 <button class="mark bl" id="soundToggle" aria-pressed="false">sound on</button>
 
-<!-- the looping grid builds itself in here -->
-<main class="gridpage" id="gridpage"></main>
+<!-- the infinite sheet: filled and moved by grid.js -->
+<main class="gridcanvas" id="gridcanvas" aria-label="infinite grid — drag to move">
+  <div class="supergrid" id="supergrid"></div>
+</main>
+
+<div class="hint" id="hint">drag to drift</div>
 
 <!-- lightbox -->
 <div class="box" id="box" role="dialog" aria-modal="true" aria-label="image viewer">

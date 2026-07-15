@@ -279,14 +279,37 @@ button.mark:hover{ color:var(--hot); }
 }
 .mark a:hover, .fin a:hover{ color:var(--hot); border-bottom-color:var(--hot); }
 
-/* ---- grid page (endless): copies stack with the same gap as the
-   grid's own rows, so the loop seam is part of the pattern ---- */
-.gridpage{ padding:0 6vw; }
-.gridcopy{ margin-bottom:26px; }
-/* hide the scrollbar — a visible thumb jumping around would give
-   the loop trick away */
-.gridbody{ scrollbar-width:none; }
-.gridbody::-webkit-scrollbar{ display:none; }
+/* ---- grid page: an infinite draggable sheet ---- */
+body.canvasbody{
+  position:fixed; inset:0; width:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+.gridcanvas{
+  position:fixed; inset:0;
+  overflow:hidden;
+  touch-action:none;          /* we handle all dragging ourselves */
+  cursor:grab;
+}
+.gridcanvas.dragging{ cursor:grabbing; }
+.supergrid{
+  position:absolute; left:0; top:0;
+  will-change:transform;
+}
+.gridblock{ position:absolute; }
+
+/* the one-time invitation */
+.hint{
+  position:fixed; left:50%;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  z-index:40;
+  font-size:11px; letter-spacing:.3em;
+  color:var(--dim); text-transform:lowercase;
+  transition:opacity 1.2s ease;
+  pointer-events:none;
+}
+.hint.gone{ opacity:0; }
 .grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:26px; }
 @media (max-width:1100px){ .grid{ grid-template-columns:repeat(3, 1fr); } }
 
@@ -304,6 +327,12 @@ button.mark:hover{ color:var(--hot); }
 .tile figcaption{
   margin-top:8px; font-size:10px; letter-spacing:.22em;
   color:var(--dim); text-transform:lowercase;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tile img{
+  -webkit-user-drag:none;
+  user-select:none;
+  -webkit-user-select:none;
 }
 .tile figcaption b{ color:var(--hot); font-weight:400; margin-right:.8em; }
 
@@ -343,5 +372,4 @@ button.mark:hover{ color:var(--hot); }
 
   /* grid page: two columns on phones */
   .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; }
-  .gridcopy{ margin-bottom:14px; }
 }
