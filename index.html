@@ -8,9 +8,11 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- our stylesheet -->
 <link rel="stylesheet" href="styles.css">
 </head>
-<body class="planepage">
+<body>
 
 <div class="grain" aria-hidden="true"></div>
 
@@ -18,12 +20,13 @@
 <div class="mark tr"><a href="grid.html">grid &rarr;</a></div>
 <button class="mark bl" id="soundToggle" aria-pressed="false">sound on</button>
 
-<!-- the infinite plane: everything inside is positioned by script.js -->
-<main class="plane" id="plane" aria-label="infinite field — drag to drift">
-  <h1 class="planetitle" id="planeTitle"><span data-text="systems">systems</span><span data-text="systems">systems</span><span data-text="systems">systems</span></h1>
-</main>
+<header class="intro">
+  <h1><span data-text="systems">systems</span><span data-text="systems">systems</span><span data-text="systems">systems</span></h1>
+</header>
 
-<div class="hint" id="hint">drag to drift</div>
+<main class="field" id="field"></main>
+
+<div class="fin">end<a href="grid.html">view as grid &rarr;</a></div>
 
 <!-- lightbox -->
 <div class="box" id="box" role="dialog" aria-modal="true" aria-label="image viewer">
@@ -34,6 +37,7 @@
   <button class="close" id="close">close ×</button>
 </div>
 
+<!-- works.js first (the image list), then the scripts that use it -->
 <script src="works.js"></script>
 <script src="script.js"></script>
 <script src="sound.js"></script>
