@@ -46,7 +46,7 @@ const WORKS = [
   { src:"images/al.png",   title:"pylon al",     year:"2026" },
   { src:"images/am.png",   title:"pylon am",     year:"2026" },
   { src:"images/an.png",   title:"pylon an",     year:"2026" },
-  { src:"images/ao.png",   title:"pylon ao",     year:"2026" },
+  { src:"images/ao.png",   title:"<3",     year:"2026" },
   { src:"images/ap.png",   title:"pylon ap",     year:"2026" },
   { src:"images/aq.png",   title:"pylon aq",     year:"2026" },
 ];
