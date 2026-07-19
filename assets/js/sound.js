@@ -116,7 +116,7 @@
   }
 
   /* ---- excitement: lingering on a piece quickens the hum ----
-     Called by script.js. The breathing speeds up, wobbles harder,
+     Called by field.js. The breathing speeds up, wobbles harder,
      and the filter opens slightly — like current rising. Everything
      ramps smoothly, and it's a no-op if sound is off. */
   window.__hum = {

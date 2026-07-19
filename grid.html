@@ -5,10 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>systemssystemssystems — grid</title>
+<meta name="description" content="systemssystemssystems — the full set as an endless sheet. drag to drift.">
+<link rel="canonical" href="https://systemssystemssystems.faith/grid.html">
+<meta name="theme-color" content="#08080a">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="systemssystemssystems">
+<meta property="og:title" content="systemssystemssystems — grid">
+<meta property="og:description" content="the full set as an endless sheet. drag to drift.">
+<meta property="og:url" content="https://systemssystemssystems.faith/grid.html">
+<meta property="og:image" content="https://systemssystemssystems.faith/images/1.2.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body class="canvasbody">
 
@@ -28,14 +43,16 @@
 <!-- lightbox -->
 <div class="box" id="box" role="dialog" aria-modal="true" aria-label="image viewer">
   <button class="nav prev" id="prev" aria-label="previous image"></button>
-  <img id="boxImg" src="" alt="">
+  <img id="boxImg" alt="">
   <div class="cap" id="boxCap"></div>
   <button class="nav next" id="next" aria-label="next image"></button>
-  <button class="close" id="close">close ×</button>
+  <button class="close" id="close" aria-label="close image viewer">close ×</button>
 </div>
 
 <script src="works.js"></script>
-<script src="grid.js"></script>
-<script src="sound.js"></script>
+<script src="images/thumbs/index.js"></script>
+<script src="assets/js/lightbox.js"></script>
+<script src="assets/js/grid.js"></script>
+<script src="assets/js/sound.js"></script>
 </body>
 </html>

@@ -2,13 +2,19 @@
    THE FIELD (front page).
    The image list lives in works.js — edit it there, not here.
 
-   Layout + evolution: pieces migrate anywhere, on their own
-   clocks, re-rolling size each time. Nested pairs travel together.
+   Layout: every host piece owns one vertical band of the field
+   (newest work = top band), and placement — including every later
+   migration — jitters inside that band. Even density by
+   construction: no voids, no pile-ups. Nested pairs travel
+   together. Sizes are rolled in vw but clamped in px per device
+   tier, so pieces never collapse on small windows or balloon on
+   ultrawides; width changes re-tier and re-place the field after a
+   short debounce.
 
    Tuning:
      FADE              — dissolve length (ms), matches the CSS 3.4s
      9000 + ...*9000   — time between migrations per piece (ms)
-     SIZE ranges       — in the place() function below
+     SIZES             — per-tier size/density table below
    ================================================================ */
 
 const FADE = 3400;
@@ -24,32 +30,52 @@ function mulberry32(seed){
 const seeded = mulberry32(20260713);
 
 const field = document.getElementById('field');
-const mobile = window.matchMedia('(max-width: 640px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* tighter vertical rhythm on mobile = denser, less dead space */
-const stepVh = mobile ? 38 : 60;
+/* ---- responsive sizing ----
+   host/child are [base, spread] in vw; the px pairs are hard
+   floors/ceilings after conversion. step is the vertical rhythm
+   (vh of field per host) — smaller = denser. */
+const SIZES = [
+  { max:  640, host:[58, 34], hostPx:[150, 900], child:[22, 12], childPx:[ 80, 420], step: 30 },  /* phones */
+  { max: 1024, host:[36, 28], hostPx:[240, 720], child:[13, 11], childPx:[140, 400], step: 33 },  /* tablets */
+  { max: 1e9,  host:[24, 30], hostPx:[300, 960], child:[ 9, 10], childPx:[170, 440], step: 36 },  /* desktop+ */
+];
+let T = SIZES.find(t => innerWidth <= t.max);
+
 const pieces = [];
 const hosts = [];
 
 let lastHost = null;
 
-const bigCount = WORKS.length - Math.floor(WORKS.length / 3);
-const fieldVh = bigCount * stepVh + 55;
+const hostCount = WORKS.length - Math.floor(WORKS.length / 3);
+let fieldVh = 0;
+function sizeField(){
+  T = SIZES.find(t => innerWidth <= t.max);
+  fieldVh = hostCount * T.step + 45;
+  field.style.height = fieldVh + 'vh';
+}
+
+/* roll a vw size, then clamp it in px against the live viewport */
+function rollVw([base, spread], [minPx, maxPx], R){
+  const vw = base + R() * spread;
+  return Math.max(minPx / innerWidth * 100, Math.min(vw, maxPx / innerWidth * 100));
+}
 
 function place(h, R){
-  /* mobile pieces run bigger relative to the screen — small
-     fragments that work on desktop just read as clutter on a phone */
-  h.w = mobile ? 54 + R()*36 : 16 + R()*32;
-  h.x = 2 + R()*Math.max(92 - h.w, 2);
-  h.y = 6 + R()*(fieldVh - 50);
-  h.z = Math.floor(R()*20);
+  h.w = rollVw(T.host, T.hostPx, R);
+  /* the host's band: its slice of the field, with enough jitter to
+     blur the seams but never enough to open a void */
+  const band = (fieldVh - 60) / hosts.length;
+  h.y = 8 + (h.band + 0.5) * band + (R() - 0.5) * band * .9;
+  h.x = 2 + R() * Math.max(92 - h.w, 2);
+  h.z = Math.floor(R() * 20);
   apply(h.fig, h);
   if(h.child){
     const c = h.child;
-    c.w = mobile ? 20 + R()*12 : 8 + R()*10;
+    c.w = rollVw(T.child, T.childPx, R);
     c.x = h.x + R() * Math.max(h.w - c.w, 3);
-    c.y = h.y + 8 + R()*14;
+    c.y = h.y + 8 + R() * 14;
     c.z = h.z + 5;
     apply(c.fig, c);
   }
@@ -62,20 +88,13 @@ function apply(fig, o){
 }
 
 WORKS.forEach((work, i) => {
-  const fig = document.createElement('figure');
-  fig.className = 'piece';
-  fig.tabIndex = 0;
-
-  const num = String(WORKS.length - i).padStart(2,'0');
-  fig.innerHTML = `
-    <img src="${work.src}" alt="${work.title}" loading="lazy">
-    <figcaption><b>${num}</b>${work.title} — ${work.year}</figcaption>`;
+  const fig = buildFigure(work, i, 'piece');
 
   fig.style.setProperty('--humDur', (4 + seeded()*5).toFixed(2) + 's');
   fig.style.setProperty('--humDelay', (-seeded()*8).toFixed(2) + 's');
 
-  fig.addEventListener('click', () => openBox(i));
-  fig.addEventListener('keydown', e => { if(e.key === 'Enter') openBox(i); });
+  fig.addEventListener('click', () => Lightbox.open(i));
+  fig.addEventListener('keydown', e => { if(e.key === 'Enter') Lightbox.open(i); });
   field.appendChild(fig);
   pieces.push(fig);
 
@@ -86,6 +105,7 @@ WORKS.forEach((work, i) => {
   } else {
     const h = {
       fig,
+      band: hosts.length,          /* fixed slice of the field, newest at the top */
       drift: reduced ? 0 : (seeded()*0.14 - 0.04),
       child: null
     };
@@ -95,9 +115,21 @@ WORKS.forEach((work, i) => {
   }
 });
 
+sizeField();
 hosts.forEach(h => place(h, seeded));
 
-field.style.height = fieldVh + 'vh';
+/* real resizes re-tier and re-place everything (debounced); pure
+   height changes are ignored — that's just a phone's browser bar */
+let lastW = innerWidth, resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if(innerWidth === lastW) return;
+    lastW = innerWidth;
+    sizeField();
+    hosts.forEach(h => place(h, Math.random));
+  }, 350);
+});
 
 function drift(){
   const sy = window.scrollY;
@@ -178,35 +210,4 @@ if(pointerFine && !reduced){
   });
 }
 
-/* ---- lightbox ---- */
-const box = document.getElementById('box');
-const boxImg = document.getElementById('boxImg');
-const boxCap = document.getElementById('boxCap');
-let current = 0;
-
-function openBox(i){
-  current = i;
-  const w = WORKS[i];
-  boxImg.src = w.src;
-  boxImg.alt = w.title;
-  const num = String(WORKS.length - i).padStart(2,'0');
-  boxCap.innerHTML = `<b>${num}</b>${w.title} — ${w.year}`;
-  box.classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeBox(){
-  box.classList.remove('open');
-  document.body.style.overflow = '';
-}
-function step(d){ openBox((current + d + WORKS.length) % WORKS.length); }
-
-document.getElementById('close').addEventListener('click', closeBox);
-document.getElementById('prev').addEventListener('click', () => step(-1));
-document.getElementById('next').addEventListener('click', () => step(1));
-box.addEventListener('click', e => { if(e.target === box) closeBox(); });
-window.addEventListener('keydown', e => {
-  if(!box.classList.contains('open')) return;
-  if(e.key === 'Escape') closeBox();
-  if(e.key === 'ArrowLeft') step(-1);
-  if(e.key === 'ArrowRight') step(1);
-});
+/* the lightbox itself lives in lightbox.js, shared with the grid page */
