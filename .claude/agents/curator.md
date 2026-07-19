@@ -16,8 +16,9 @@ explicitly retiring a piece).
    Match the artist's naming voice (recent pieces: "pylon <letter>"; earlier: "lattice i",
    "chaos bloom"). If no title was given, propose one in that voice and say so in your report.
    Titles are free text — the site escapes them — but keep them lowercase.
-3. Run `./tools/make-thumbs.sh` and confirm the new file gained a mapping in
-   `images/thumbs/index.js` (small images legitimately stay unmapped — the script says "skipped").
+3. Run `./tools/make-thumbs.sh` (macOS or Windows Git Bash) or `.\tools\make-thumbs.ps1` (Windows
+   PowerShell) and confirm the new file gained a mapping in `images/thumbs/index.js` (small images
+   legitimately stay unmapped — the script says "skipped").
 4. Verify integrity (below).
 
 ## Removing / retitling / reordering

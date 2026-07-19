@@ -20,8 +20,9 @@ sacred, case-sensitive paths, lowercase voice).
 1. Place the image in `images/`. Record the exact filename.
 2. Add `{ src:"images/<file>", title:"<title>", year:"<year>" },` at the **top** of `works.js`
    (newest first — numbering is derived from position, don't touch anything else).
-3. `./tools/make-thumbs.sh` — expect a "made images/thumbs/…" line per new image, or a "skipped"
-   line for small files (that's fine, they serve the original).
+3. Run `./tools/make-thumbs.sh` (macOS or Windows Git Bash) or `.\tools\make-thumbs.ps1` (Windows
+   PowerShell) — expect a "made images/thumbs/…" line per new image, or a "skipped" line for small
+   files (that's fine, they serve the original).
 4. Integrity: every manifest `src` exists case-sensitively, no dupes, new thumb mapping present in
    `images/thumbs/index.js` (or legitimately skipped).
 5. Verify in the browser (the `site-qa` agent, or at minimum: serve on :4173, both pages, console

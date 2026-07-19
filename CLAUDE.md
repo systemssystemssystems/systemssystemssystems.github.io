@@ -7,7 +7,8 @@ docs are in `README.md`; this file is operating instructions.
 ## Hard rules
 
 1. **`images/` originals are the artworks.** Never resize, recompress, re-encode, rename, or delete
-   them. Derivatives belong in `images/thumbs/`, produced only by `tools/make-thumbs.sh`.
+   them. Derivatives belong in `images/thumbs/`, produced only by `tools/make-thumbs.sh` (macOS or
+   Windows Git Bash) or `tools/make-thumbs.ps1` (Windows PowerShell).
 2. **No frameworks, no build step, no dependencies, ever.** Plain HTML/CSS/JS files served as-is is
    a deliberate property of this project, not an accident. Don't introduce npm, bundlers, or CDNs
    (the two Google Fonts links are the only external requests).
@@ -59,8 +60,9 @@ All code lives under `assets/js/` and `assets/css/`. Generated files live under 
 
 ## Workflows
 
-**Add a work** — image into `images/`, entry at top of `works.js`, `./tools/make-thumbs.sh`, then
-verify. The `/add-work` skill and the `curator` agent encode this.
+**Add a work** — image into `images/`, entry at top of `works.js`, run `./tools/make-thumbs.sh`
+(macOS or Windows Git Bash) or `.\tools\make-thumbs.ps1` (Windows PowerShell), then verify. The
+`/add-work` skill and the `curator` agent encode this.
 
 **Verify any change** (the `site-qa` agent encodes this): serve the repo root — use the `site`
 config in `.claude/launch.json` (`python3 -m http.server 4173`) — then on **both** pages check:
@@ -77,8 +79,8 @@ has a thumbs mapping.
 
 ## Gotchas learned the hard way
 
-- sips "thumbs" can come out **larger** than the original (small or already-lean files) — the
-  script deletes those and leaves the image unmapped on purpose; don't "fix" that.
+- Generated "thumbs" can come out **larger** than the original (small or already-lean files) — the
+  scripts delete those and leave the image unmapped on purpose; don't "fix" that.
 - The grid page instantiates every artwork **nine times**; anything per-tile (listeners, decode
   cost) is ×9. Keep tiles cheap.
 - `works.js` says "the only file you edit day-to-day" — keep it true. Don't move the manifest into

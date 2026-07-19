@@ -42,7 +42,8 @@ Motion, static, and migration all stand down when the visitor has `prefers-reduc
 | `assets/css/site.css` | all styling; palette variables at the top, mobile overrides at the bottom |
 | `images/` | **the originals. these are the artworks — never resized, recompressed, or renamed.** |
 | `images/thumbs/` | generated inline derivatives + `index.js` manifest (see below) |
-| `tools/make-thumbs.sh` | regenerates `images/thumbs/` (macOS `sips`, no other tooling) |
+| `tools/make-thumbs.sh`, `tools/make-thumbs.ps1` | regenerate `images/thumbs/` with native macOS or Windows tooling |
+| `.github/workflows/thumbnails.yml` | tests a clean thumbnail generation on both macOS and Windows |
 | `docs/` | README screenshots |
 | `CNAME`, `.nojekyll`, favicons | GitHub Pages plumbing (root by convention) |
 
@@ -55,7 +56,19 @@ Motion, static, and migration all stand down when the visitor has `prefers-reduc
    { src:"images/ar.png", title:"pylon ar", year:"2026" },
    ```
    Numbering is derived automatically (newest = highest number), so nothing else needs renumbering.
-3. Run `./tools/make-thumbs.sh` (macOS only; needs nothing but the built-in `sips`).
+3. Regenerate thumbnails with the native script for your platform:
+
+   macOS, or Windows from Git Bash:
+
+   ```sh
+   ./tools/make-thumbs.sh
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   .\tools\make-thumbs.ps1
+   ```
 4. Check it locally (below), then commit and push `main`. GitHub Pages deploys in about a minute.
 
 Skipping step 3 never breaks the site — a work without a thumb simply serves its original file,
@@ -68,6 +81,10 @@ the pages display generated derivatives (max 1400 px, opaque images as JPEG, tra
 PNG) and save the originals for the lightbox. `images/thumbs/index.js` maps original → thumb; a
 thumb only earns a manifest entry by being genuinely smaller than its original. Everything under
 `images/thumbs/` is disposable output — regenerate it, never hand-edit it.
+
+Neither generator installs dependencies: macOS uses `sips`, while Windows uses `System.Drawing`.
+GitHub Actions deletes the checked-in derivatives, regenerates them independently on both operating
+systems, confirms the originals stayed untouched, and validates every generated mapping.
 
 ## running locally
 
