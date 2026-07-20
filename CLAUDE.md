@@ -89,3 +89,63 @@ has a thumbs mapping.
   pan-by-wheel; it early-returns while the lightbox is open so the sheet doesn't drift underneath.
 - GitHub Pages "Enforce HTTPS" is a **repo setting**, not a file — plain `http://` currently serves
   200 instead of redirecting; only the repo owner can flip it (Settings → Pages).
+
+## Design history & decisions
+
+This section is the memory of the site's development (built conversationally with Claude in
+mid-2026, then restructured by a collaborator's PR). These are settled judgement calls, not
+accidents or oversights — don't "improve" them away without the artist asking.
+
+### The two pages are deliberate opposites
+The **field** (`index.html`) is chaos: scattered sizes, overlaps, pieces that migrate every
+10–18s, out-of-phase opacity "humming". The **grid** (`grid.html`) is order: uniform tiles on
+an infinite draggable 2D sheet. Same works, two infinities. Don't let features from one leak
+into the other (e.g. the grid intentionally has no hum or migrations — it's the calm page).
+
+### Things that were tried and rejected
+- **Tilted/rotated pieces** on the field — rejected; everything sits square.
+- **The field as an infinite draggable plane** — built, shipped, and reverted at the artist's
+  request. The field scrolls; the *grid* is the infinite canvas. Don't re-propose.
+- **Weighted/damped scrolling** on the field (`assets/js/scroll.js`, now unloaded) — tried at
+  full strength, then softened, then removed as both laggy and not to taste. Native scroll won.
+- **Migration protection** (pieces refusing to move while hovered) — removed on request.
+  Nothing is safe; pieces may dissolve under the cursor. That's the point.
+
+### Numbers that look arbitrary but aren't
+- **Zoom barriers 0.6–1.6** (`assets/js/grid.js`): 0.6 is the geometric floor below which the
+  3×3 block patchwork stops covering the viewport (you'd see the void); 1.6 is the sharpness
+  ceiling for 640px thumbnails. Raising S_MAX requires bigger thumbs; lowering S_MIN requires
+  a 5×5 patchwork (~2.8× the tiles — reconsider performance first).
+- **Thumbnail cap 640px** (`tools/make-thumbs.*`): sized for tiles at max zoom. Was 1400px
+  once; that made 500–900KB "thumbnails" and got cut down ~4×.
+- **The seed `20260713`** (`assets/js/field.js`): makes every visit *open* with the same
+  arrangement before diverging randomly. Changing it reshuffles the opening composition —
+  a legitimate artistic act, but the artist's, not yours.
+- **updateStatic reads-then-writes in two phases** (`assets/js/field.js`): interleaving rect
+  reads with style writes forced ~one layout pass per piece per scroll frame and visibly
+  lagged a Mac at 49 works. Keep the phases separate however the function evolves.
+
+### Sound
+- The hum is **synthesised live** (Web Audio, `assets/js/sound.js`), not a file — a compressed
+  loop has an audible seam, and "the machine generates its own transmission" fits the site.
+- **Two voicings**: desktop gets 50Hz mains + harmonics; phones (≤640px) get a 200–500Hz
+  "transformer whine" with a detuned beating pair, because phone speakers physically can't
+  reproduce 50Hz. Mobile audibility issues have a history: check the iOS mute switch and
+  cached JS before suspecting code.
+- **Lingering on a field piece excites the hum** via `window.__hum.excite()` — breathing rate,
+  wobble depth and filter all ramp. It's a no-op when sound is off; keep it that way.
+- **Long-term intent**: replace the synthesis with a real field recording of a substation,
+  made by the artist, looped seamlessly. The synthesised hum is the placeholder.
+
+### Miscellany worth knowing
+- The `.faith` TLD is an artistic choice (pylons as objects of devotion). The github.io
+  address still resolves and redirects.
+- The 3-storey stacked SYSTEMS title was mobile-first, then promoted to all screens; each
+  storey glitches on its own offset clock (the `animation-delay`s on the span pseudo-elements).
+- Grid **padding tiles** (`.padtile`) repeat the newest works to keep the last row full at any
+  column count — real, clickable, excluded from tab order. On a repeating sheet, repeats are
+  native vocabulary, not a hack.
+- Some originals have quirky names (`z.PNG` uppercase, `h.jpeg`/`i.jpeg`, dotted stems like
+  `1.2.png`). They are what they are; the manifest matches them byte-for-byte (hard rule 3).
+- The artist is a self-taught beginner who learned by building this. Explain changes in plain
+  language, one concept at a time, and prefer small reviewable steps over sweeping refactors.
