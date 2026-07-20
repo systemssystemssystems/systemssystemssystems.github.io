@@ -49,7 +49,7 @@ fi
 
 cd "$script_dir/.."
 
-MAX=1400
+MAX=640
 JPEG_QUALITY=82
 mkdir -p images/thumbs
 

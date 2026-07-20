@@ -13,7 +13,7 @@ output is kept only when it is smaller than its original.
 [CmdletBinding()]
 param(
     [ValidateRange(1, 10000)]
-    [int]$MaxDimension = 1400,
+    [int]$MaxDimension = 640,
 
     [ValidateRange(1, 100)]
     [int]$JpegQuality = 82

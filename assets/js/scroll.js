@@ -16,10 +16,10 @@
 (function(){
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const GAIN = 0.4;
-  const TOUCH_GAIN = 0.55;
-  const MAXV = 30;
-  const EASE = 0.11;
+  const GAIN = 0.7;
+  const TOUCH_GAIN = 0.8;
+  const MAXV = 60;
+  const EASE = 0.17;
 
   let target = window.scrollY, cur = window.scrollY, raf = null;
 

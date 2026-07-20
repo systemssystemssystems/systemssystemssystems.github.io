@@ -19,6 +19,10 @@ const supergrid = document.getElementById('supergrid');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let COLS = 4, GAP = 26;
+const S_MIN = 0.6, S_MAX = 1.6;   /* zoom barriers: 0.6 keeps the 3x3
+   patchwork covering the screen; 1.6 keeps thumbnails sharp */
+
+supergrid.style.transformOrigin = '0 0';
 
 let PW = 0, PH = 0;               /* the wrap periods (block + gap) */
 const blocks = [];
@@ -57,10 +61,10 @@ function revealTile(fig){
   canvas.scrollLeft = 0; canvas.scrollTop = 0;
   const r = fig.getBoundingClientRect();
   const m = 60;
-  if(r.left < m) camX -= m - r.left;
-  else if(r.right > innerWidth - m) camX += r.right - (innerWidth - m);
-  if(r.top < m) camY -= m - r.top;
-  else if(r.bottom > innerHeight - m) camY += r.bottom - (innerHeight - m);
+  if(r.left < m) camX -= (m - r.left) / s;
+  else if(r.right > innerWidth - m) camX += (r.right - (innerWidth - m)) / s;
+  if(r.top < m) camY -= (m - r.top) / s;
+  else if(r.bottom > innerHeight - m) camY += (r.bottom - (innerHeight - m)) / s;
   velX = velY = 0;
   needsRender = true;
 }
@@ -88,15 +92,28 @@ function layout(){
 }
 
 /* ---- camera ---- */
-let camX = 0, camY = 0, velX = 0, velY = 0;
+let camX = 0, camY = 0, velX = 0, velY = 0, s = 1;
 let dragging = false, lastX = 0, lastY = 0, dragDist = 0;
 let needsRender = true;
 
 function wrap(v, size){ return ((v % size) + size) % size; }
 
+const clampS = v => Math.min(S_MAX, Math.max(S_MIN, v));
+
+/* zoom towards a screen point: that point stays pinned under the
+   fingers/cursor while the scale changes around it */
+function zoomAt(px, py, s2){
+  s2 = clampS(s2);
+  camX += (px - innerWidth / 2) * (1 / s - 1 / s2);
+  camY += (py - innerHeight / 2) * (1 / s - 1 / s2);
+  s = s2;
+  needsRender = true;
+}
+
 function render(){
   supergrid.style.transform =
-    `translate3d(${-(PW + wrap(camX, PW))}px, ${-(PH + wrap(camY, PH))}px, 0)`;
+    `translate3d(${innerWidth / 2 - s * (PW + wrap(camX, PW))}px, ` +
+    `${innerHeight / 2 - s * (PH + wrap(camY, PH))}px, 0) scale(${s})`;
 }
 
 const FRICTION = .94;
@@ -114,36 +131,78 @@ function loop(){
 const hint = document.getElementById('hint');
 function hideHint(){ if(hint) hint.classList.add('gone'); }
 
+const pointers = new Map();
+let prevMid = null, prevDist = 0;
+
 canvas.addEventListener('pointerdown', e => {
-  dragging = true;
-  canvas.classList.add('dragging');
-  lastX = e.clientX; lastY = e.clientY;
-  velX = velY = 0; dragDist = 0;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   hideHint();
+  if(pointers.size === 1){
+    dragging = true;
+    canvas.classList.add('dragging');
+    lastX = e.clientX; lastY = e.clientY;
+    velX = velY = 0; dragDist = 0;
+  } else if(pointers.size === 2){
+    dragging = false;                        /* two fingers = pinch */
+    const [a, b] = [...pointers.values()];
+    prevMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    prevDist = Math.hypot(a.x - b.x, a.y - b.y);
+  }
 });
 window.addEventListener('pointermove', e => {
-  if(!dragging) return;
-  const dx = e.clientX - lastX, dy = e.clientY - lastY;
-  lastX = e.clientX; lastY = e.clientY;
-  camX -= dx; camY -= dy;
-  dragDist += Math.abs(dx) + Math.abs(dy);
-  velX = velX * .7 + (-dx) * .3;
-  velY = velY * .7 + (-dy) * .3;
-  needsRender = true;
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if(pointers.size === 2){
+    const [a, b] = [...pointers.values()];
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    if(prevDist > 0) zoomAt(mid.x, mid.y, s * (dist / prevDist));
+    camX -= (mid.x - prevMid.x) / s;         /* two-finger pan too */
+    camY -= (mid.y - prevMid.y) / s;
+    dragDist += Math.abs(mid.x - prevMid.x) + Math.abs(mid.y - prevMid.y)
+              + Math.abs(dist - prevDist);
+    prevMid = mid; prevDist = dist;
+    needsRender = true;
+  } else if(dragging){
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    camX -= dx / s; camY -= dy / s;
+    dragDist += Math.abs(dx) + Math.abs(dy);
+    velX = velX * .7 + (-dx / s) * .3;
+    velY = velY * .7 + (-dy / s) * .3;
+    needsRender = true;
+  }
 });
-function endDrag(){
-  dragging = false;
-  canvas.classList.remove('dragging');
+function releasePointer(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size === 1){
+    /* pinch ended with one finger down: hand back to dragging */
+    const p = [...pointers.values()][0];
+    dragging = true;
+    lastX = p.x; lastY = p.y;
+    velX = velY = 0;
+  } else if(pointers.size === 0){
+    dragging = false;
+    canvas.classList.remove('dragging');
+  }
 }
-window.addEventListener('pointerup', endDrag);
-window.addEventListener('pointercancel', endDrag);
-window.addEventListener('blur', endDrag);
+window.addEventListener('pointerup', releasePointer);
+window.addEventListener('pointercancel', releasePointer);
+window.addEventListener('blur', () => {
+  pointers.clear(); dragging = false; canvas.classList.remove('dragging');
+});
 window.addEventListener('wheel', e => {
-  if(Lightbox.isOpen()) return;      /* don't pan behind the lightbox */
+  if(Lightbox.isOpen()) return;      /* don't pan or zoom behind the lightbox */
   e.preventDefault();
-  camX += e.deltaX; camY += e.deltaY;
-  needsRender = true;
   hideHint();
+  if(e.ctrlKey){                     /* trackpad pinch / ctrl+scroll = zoom */
+    zoomAt(e.clientX, e.clientY, s * Math.exp(-e.deltaY * .0022));
+  } else {
+    camX += e.deltaX / s;
+    camY += e.deltaY / s;
+    needsRender = true;
+  }
 }, { passive:false });
 
 window.addEventListener('resize', () => { layout(); needsRender = true; });
