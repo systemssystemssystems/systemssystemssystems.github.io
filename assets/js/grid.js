@@ -16,38 +16,34 @@
 
 const canvas = document.getElementById('gridcanvas');
 const supergrid = document.getElementById('supergrid');
-const mobile = window.matchMedia('(max-width: 640px)').matches;
-const midsize = window.matchMedia('(max-width: 1100px)').matches;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const COLS = mobile ? 2 : (midsize ? 3 : 4);
-const GAP = mobile ? 14 : 26;
+let COLS = 4, GAP = 26;
 
 let PW = 0, PH = 0;               /* the wrap periods (block + gap) */
 const blocks = [];
 
-function buildBlock(){
+function buildBlock(tabbable){
   const g = document.createElement('div');
   g.className = 'grid gridblock';
+  if(!tabbable) g.setAttribute('aria-hidden', 'true');
   WORKS.forEach((work, i) => {
-    const fig = document.createElement('figure');
-    fig.className = 'tile';
-    fig.tabIndex = 0;
-    const num = String(WORKS.length - i).padStart(2,'0');
-    fig.innerHTML = `
-      <img src="${work.src}" alt="${work.title}" loading="lazy" draggable="false">
-      <figcaption><b>${num}</b>${work.title} — ${work.year}</figcaption>`;
-    fig.addEventListener('click', () => { if(dragDist < 10) openBox(i); });
-    fig.addEventListener('keydown', e => { if(e.key === 'Enter') openBox(i); });
+    const fig = buildFigure(work, i, 'tile');
+    /* only the centre copy joins the tab order — nine identical
+       copies would mean nine identical stops for every tile */
+    if(!tabbable) fig.tabIndex = -1;
+    fig.addEventListener('click', () => { if(dragDist < 10) Lightbox.open(i); });
+    fig.addEventListener('keydown', e => { if(e.key === 'Enter') Lightbox.open(i); });
+    if(tabbable) fig.addEventListener('focus', () => revealTile(fig));
     g.appendChild(fig);
   });
   return g;
 }
 
-/* nine identical copies in a 3x3 patchwork */
+/* nine identical copies in a 3x3 patchwork; centre one is tabbable */
 for(let by = 0; by < 3; by++){
   for(let bx = 0; bx < 3; bx++){
-    const b = buildBlock();
+    const b = buildBlock(bx === 1 && by === 1);
     b.dataset.bx = bx;
     b.dataset.by = by;
     blocks.push(b);
@@ -55,9 +51,25 @@ for(let by = 0; by < 3; by++){
   }
 }
 
+/* keyboard pan: focusing a tile drives the camera to it (the browser's
+   own reveal-scroll is undone first — it would desync the wrap math) */
+function revealTile(fig){
+  canvas.scrollLeft = 0; canvas.scrollTop = 0;
+  const r = fig.getBoundingClientRect();
+  const m = 60;
+  if(r.left < m) camX -= m - r.left;
+  else if(r.right > innerWidth - m) camX += r.right - (innerWidth - m);
+  if(r.top < m) camY -= m - r.top;
+  else if(r.bottom > innerHeight - m) camY += r.bottom - (innerHeight - m);
+  velX = velY = 0;
+  needsRender = true;
+}
+
 /* size the cells so one block spans exactly the viewport width,
    with uniform gaps everywhere — including across the wrap seam */
 function layout(){
+  COLS = innerWidth <= 640 ? 2 : (innerWidth <= 1100 ? 3 : 4);
+  GAP = innerWidth <= 640 ? 14 : 26;
   const cell = (window.innerWidth - COLS * GAP) / COLS;
   blocks.forEach(b => {
     b.style.gridTemplateColumns = `repeat(${COLS}, ${cell}px)`;
@@ -119,11 +131,15 @@ window.addEventListener('pointermove', e => {
   velY = velY * .7 + (-dy) * .3;
   needsRender = true;
 });
-window.addEventListener('pointerup', () => {
+function endDrag(){
   dragging = false;
   canvas.classList.remove('dragging');
-});
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+window.addEventListener('blur', endDrag);
 window.addEventListener('wheel', e => {
+  if(Lightbox.isOpen()) return;      /* don't pan behind the lightbox */
   e.preventDefault();
   camX += e.deltaX; camY += e.deltaY;
   needsRender = true;
@@ -131,37 +147,13 @@ window.addEventListener('wheel', e => {
 }, { passive:false });
 
 window.addEventListener('resize', () => { layout(); needsRender = true; });
+/* re-measure once everything has arrived — a late font swap changes
+   caption height, and a stale PH would show at the wrap seam */
+window.addEventListener('load', () => { layout(); needsRender = true; });
+if(document.fonts && document.fonts.ready)
+  document.fonts.ready.then(() => { layout(); needsRender = true; });
 
-/* ---- lightbox ---- */
-const box = document.getElementById('box');
-const boxImg = document.getElementById('boxImg');
-const boxCap = document.getElementById('boxCap');
-let current = 0;
-
-function openBox(i){
-  current = i;
-  const w = WORKS[i];
-  boxImg.src = w.src;
-  boxImg.alt = w.title;
-  const num = String(WORKS.length - i).padStart(2,'0');
-  boxCap.innerHTML = `<b>${num}</b>${w.title} — ${w.year}`;
-  box.classList.add('open');
-}
-function closeBox(){
-  box.classList.remove('open');
-}
-function step(d){ openBox((current + d + WORKS.length) % WORKS.length); }
-
-document.getElementById('close').addEventListener('click', closeBox);
-document.getElementById('prev').addEventListener('click', () => step(-1));
-document.getElementById('next').addEventListener('click', () => step(1));
-box.addEventListener('click', e => { if(e.target === box) closeBox(); });
-window.addEventListener('keydown', e => {
-  if(!box.classList.contains('open')) return;
-  if(e.key === 'Escape') closeBox();
-  if(e.key === 'ArrowLeft') step(-1);
-  if(e.key === 'ArrowRight') step(1);
-});
+/* the lightbox itself lives in lightbox.js, shared with the field page */
 
 /* go */
 layout();
