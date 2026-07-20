@@ -175,18 +175,28 @@ if(pointerFine && !reduced){
 
   function updateStatic(){
     queued = false;
-    for(const p of pieces){
-      const r = p.getBoundingClientRect();
-      if(r.bottom < -100 || r.top > innerHeight + 100){
-        p.style.setProperty('--staticAmt', 0);
+    /* phase 1: read every rect first; phase 2: write every style.
+       Interleaving reads and writes forces the browser to re-run
+       layout once per piece per frame — batched, it runs once. */
+    const vh = innerHeight;
+    const amts = new Array(pieces.length);
+    for(let i = 0; i < pieces.length; i++){
+      const r = pieces[i].getBoundingClientRect();
+      if(r.bottom < -100 || r.top > vh + 100){
+        amts[i] = '0';
         continue;
       }
-      /* distance from cursor to the nearest point of the piece */
       const dx = Math.max(r.left - mx, 0, mx - r.right);
       const dy = Math.max(r.top - my, 0, my - r.bottom);
-      const d = Math.hypot(dx, dy);
-      const amt = Math.max(0, 1 - d / RANGE) * MAXSTATIC;
-      p.style.setProperty('--staticAmt', amt.toFixed(3));
+      const amt = Math.max(0, 1 - Math.hypot(dx, dy) / RANGE) * MAXSTATIC;
+      amts[i] = amt.toFixed(3);
+    }
+    for(let i = 0; i < pieces.length; i++){
+      const p = pieces[i];
+      if(p.dataset.amt !== amts[i]){           /* skip unchanged writes */
+        p.dataset.amt = amts[i];
+        p.style.setProperty('--staticAmt', amts[i]);
+      }
     }
   }
   function queue(){ if(!queued){ queued = true; requestAnimationFrame(updateStatic); } }

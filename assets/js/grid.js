@@ -41,6 +41,17 @@ function buildBlock(tabbable){
     if(tabbable) fig.addEventListener('focus', () => revealTile(fig));
     g.appendChild(fig);
   });
+  /* padding tiles: up to 3 repeats of the newest works, shown as
+     needed (in layout) so the final row is always full at any
+     column count. They're real, clickable duplicates — on an
+     endlessly repeating sheet, a repeat is native behaviour. */
+  for(let p = 0; p < 3; p++){
+    const fig = buildFigure(WORKS[p], p, 'tile padtile');
+    fig.tabIndex = -1;
+    fig.setAttribute('aria-hidden', 'true');
+    fig.addEventListener('click', () => { if(dragDist < 10) Lightbox.open(p); });
+    g.appendChild(fig);
+  }
   return g;
 }
 
@@ -74,6 +85,13 @@ function revealTile(fig){
 function layout(){
   COLS = innerWidth <= 640 ? 2 : (innerWidth <= 1100 ? 3 : 4);
   GAP = innerWidth <= 640 ? 14 : 26;
+  /* show just enough padding tiles to complete the last row */
+  const need = (COLS - (WORKS.length % COLS)) % COLS;
+  blocks.forEach(b => {
+    b.querySelectorAll('.padtile').forEach((el, i) => {
+      el.style.display = i < need ? '' : 'none';
+    });
+  });
   const cell = (window.innerWidth - COLS * GAP) / COLS;
   blocks.forEach(b => {
     b.style.gridTemplateColumns = `repeat(${COLS}, ${cell}px)`;
