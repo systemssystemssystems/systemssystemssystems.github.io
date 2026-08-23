@@ -1,5 +1,13 @@
 /* YOUR IMAGES — newest at the top. The only file you edit day-to-day. */
 const WORKS = [
+  { src:"images/bo.png",  title:"pylon bo",   year:"2026" },
+  { src:"images/bp.png",  title:"pylon bp",   year:"2026" },
+  { src:"images/bq.png",  title:"pylon bq",   year:"2026" },
+  { src:"images/br.png",  title:"pylon br",   year:"2026" },
+  { src:"images/bs.png",  title:"pylon bs",   year:"2026" },
+  { src:"images/bt.png",  title:"pylon bt",   year:"2026" },
+  { src:"images/bu.png",  title:"pylon bu",   year:"2026" },
+  { src:"images/bv.png",  title:"pylon bv",   year:"2026" },
   { src:"images/ar.png",  title:"pylon ar",   year:"2026" },
   { src:"images/as.png",  title:"pylon as",   year:"2026" },
   { src:"images/at.png",  title:"pylon at",   year:"2026" },
