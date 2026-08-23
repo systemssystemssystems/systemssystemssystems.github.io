@@ -228,6 +228,13 @@
       ctx.drawImage(img, -w / 2, -h / 2, w, h);
       ctx.restore();
     }
+    // if the page is in its inverted (negative) look, match it in the export
+    if (document.body.classList.contains('page-inverted')) {
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'difference';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+    }
     var url;
     try { url = cv.toDataURL('image/png'); } catch (e) { return; }  // synchronous + reliable
     var a = document.createElement('a');
@@ -238,6 +245,14 @@
   }
   var saveBtn = document.getElementById('cutsave');
   if (saveBtn) saveBtn.addEventListener('click', exportImage);
+
+  // ---- invert the whole page (negative look) ----
+  var invertBtn = document.getElementById('cutinvert');
+  if (invertBtn) invertBtn.addEventListener('click', function () {
+    var on = document.body.classList.toggle('page-inverted');
+    invertBtn.classList.toggle('on', on);
+    invertBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 
   // ---- controls ----
   var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];

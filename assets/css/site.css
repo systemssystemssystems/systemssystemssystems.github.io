@@ -486,6 +486,26 @@ body.canvasbody{
 .cutoutbody .csave{ color:var(--bone); }
 .cutoutbody .csave:hover{ color:var(--hot); }
 .cutoutbody .csave::before{ content:"\2193\A0"; }   /* down arrow */
+.cutoutbody .cactions{ flex-wrap:wrap; }
+.cutoutbody .cinvert{ color:var(--bone); }
+.cutoutbody .cinvert:hover{ color:var(--hot); }
+.cutoutbody .cinvert.on{ color:var(--hot); }
+.cutoutbody .cinvert::before{ content:"\25D0\A0"; }  /* half-filled circle */
+
+/* invert the whole page (a negative of the composition), but double-invert the
+   controls + marks back to normal so they stay legible on the flipped ground */
+body.cutoutbody.page-inverted{ filter:invert(1); }
+body.cutoutbody.page-inverted #cutpanel,
+body.cutoutbody.page-inverted .mark{ filter:invert(1); }
+/* the double-invert renders controls in their normal (dark-ground) palette, but
+   they now sit on a light ground — recolour them dark so they stay legible */
+body.cutoutbody.page-inverted .mark,
+body.cutoutbody.page-inverted .mark a{ color:#3a3a3e; text-shadow:none; }
+body.cutoutbody.page-inverted #cutpanel button{ color:#55555a; }
+body.cutoutbody.page-inverted #cutpanel button:hover,
+body.cutoutbody.page-inverted #cutpanel button.on{ color:#101013; }
+body.cutoutbody.page-inverted #cutpanel .clab{ color:#8c8c90; }
+body.cutoutbody.page-inverted #cutpanel .cval{ color:#101013; }
 
 .cutoutbody .cuthint{
   position:fixed; z-index:5; bottom:16px; left:50%; transform:translateX(-50%);
