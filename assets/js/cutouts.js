@@ -49,6 +49,9 @@
   var isMobile = innerWidth <= 640;
   var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: isMobile ? 10 : 20 };
   var BASE = isMobile ? 300 : 460; // px width at scale 1
+  // jagged motion is livelier on desktop (more room + power) than on phones
+  var JAG_SPEED = isMobile ? 0.9 : 1.8;
+  var JAG_JITTER = isMobile ? 2.6 : 5.5;
   var state = {
     blend: DEFAULTS.blend, scaleMode: DEFAULTS.scaleMode,
     motion: DEFAULTS.motion, count: Math.min(DEFAULTS.count, POOL.length + 4)
@@ -64,7 +67,9 @@
       : 0.8 + Math.random() * 0.4;           // 0.8x - 1.2x, the "messy grid"
   }
   function place(p) {
-    p.el.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px) translate(-50%,-50%)';
+    var t = 'translate(' + p.x + 'px,' + p.y + 'px) translate(-50%,-50%)';
+    if (p.rot) t += ' rotate(' + p.rot + 'deg)';
+    p.el.style.transform = t;
   }
 
   function recompose() {
@@ -98,7 +103,10 @@
         y: (Math.random() * 1.2 - 0.1) * innerHeight,
         s: s,
         vx: (Math.random() * 2 - 1),
-        vy: (Math.random() * 2 - 1)
+        vy: (Math.random() * 2 - 1),
+        phase: Math.random() * Math.PI * 2,     // float sway offset
+        spin: (Math.random() * 2 - 1) * 0.25,   // spin speed, deg/frame
+        rot: 0
       };
       place(p);
       stage.appendChild(el);
@@ -109,19 +117,30 @@
   // motion loop.
   //   drift  — slow, smooth, rate tied to scale = free parallax
   //   jagged — nervous + random: abrupt direction changes and per-frame jitter
-  var raf = null;
+  //   float  — gentle organic sway, each piece on its own phase
+  //   spin   — slow drift plus rotation (the field stays square; this page is
+  //            the place to break that rule if you want it)
+  var raf = null, frame = 0;
   function tick() {
-    var jag = state.motion === 'jagged';
+    frame++;
+    var m = state.motion;
     var pad = Math.max(innerWidth, innerHeight) * 0.7;
     for (var i = 0; i < pieces.length; i++) {
       var p = pieces[i];
-      if (jag) {
-        if (Math.random() < 0.10) { p.vx = Math.random() * 2 - 1; p.vy = Math.random() * 2 - 1; }
-        p.x += p.vx * p.s * 0.9 + (Math.random() - 0.5) * 3.2;
-        p.y += p.vy * p.s * 0.9 + (Math.random() - 0.5) * 3.2;
-      } else {
-        p.x += p.vx * p.s * 0.25 * 1.4;
-        p.y += p.vy * p.s * 0.25 * 1.4;
+      if (m === 'jagged') {
+        if (Math.random() < 0.14) { p.vx = Math.random() * 2 - 1; p.vy = Math.random() * 2 - 1; }
+        p.x += p.vx * p.s * JAG_SPEED + (Math.random() - 0.5) * JAG_JITTER;
+        p.y += p.vy * p.s * JAG_SPEED + (Math.random() - 0.5) * JAG_JITTER;
+      } else if (m === 'float') {
+        p.x += Math.sin(frame * 0.013 + p.phase) * 0.7 * p.s;
+        p.y += Math.cos(frame * 0.011 + p.phase * 1.3) * 0.7 * p.s;
+      } else if (m === 'spin') {
+        p.x += p.vx * p.s * 0.2;
+        p.y += p.vy * p.s * 0.2;
+        p.rot += p.spin;
+      } else { // drift
+        p.x += p.vx * p.s * 0.35;
+        p.y += p.vy * p.s * 0.35;
       }
       if (p.x < -pad) p.x = innerWidth + pad;
       if (p.x > innerWidth + pad) p.x = -pad;
@@ -141,7 +160,7 @@
   // ---- controls ----
   var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];
   var SCALES = ['tame', 'violent'];
-  var MOTIONS = ['still', 'drift', 'jagged'];
+  var MOTIONS = ['still', 'drift', 'jagged', 'float', 'spin'];
 
   function build(id, values, onset) {
     var box = document.getElementById(id);

@@ -48,6 +48,9 @@ body{
   position:fixed; z-index:40;
   font-size:11px; letter-spacing:.18em;
   color:var(--dim); text-transform:lowercase;
+  /* dark glow so the marks stay legible over busy tiles/pieces (esp. the grid),
+     instead of blending into a bright image behind them */
+  text-shadow:0 1px 2px rgba(8,8,10,.95), 0 0 10px rgba(8,8,10,.85), 0 0 3px rgba(8,8,10,.9);
 }
 .mark.tl{ top:18px; left:22px; }
 .mark.tr{ top:18px; right:22px; text-align:right; }

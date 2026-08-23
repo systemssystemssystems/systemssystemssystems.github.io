@@ -20,4 +20,6 @@ const CUTOUTS_EXTRA = [
   { src:"images/cutouts/x17.png", invert:true },  // noback1.png
   { src:"images/cutouts/x18.png", invert:true },  // noback4.1.png
   { src:"images/cutouts/x19.png", invert:true },  // noback4.png
+  { src:"images/cutouts/x21.png", invert:true },  // v212 black-dots dog
+  { src:"images/cutouts/x22.png" },  // v212 white-dots dog
 ];
