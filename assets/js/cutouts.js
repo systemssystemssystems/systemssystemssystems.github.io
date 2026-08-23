@@ -44,8 +44,11 @@
     return;
   }
 
-  var DEFAULTS = { blend: 'screen', scaleMode: 'violent', motion: 'still', count: 6 };
-  var BASE = 340; // px width at scale 1
+  // phones get fewer, smaller pieces — a packed 20 at desktop scale is too
+  // heavy on a narrow screen.
+  var isMobile = innerWidth <= 640;
+  var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: isMobile ? 10 : 20 };
+  var BASE = isMobile ? 300 : 460; // px width at scale 1
   var state = {
     blend: DEFAULTS.blend, scaleMode: DEFAULTS.scaleMode,
     motion: DEFAULTS.motion, count: Math.min(DEFAULTS.count, POOL.length + 4)
@@ -54,8 +57,10 @@
 
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
   function scaleFor() {
+    // skewed large so pieces cover the ground and overlap (that's what fills the
+    // screen and, under screen-blend, brightens); still a wide range for drama.
     return state.scaleMode === 'violent'
-      ? 0.15 * Math.pow(20, Math.random())   // 0.15x - 3x, exponential
+      ? 0.5 * Math.pow(6, Math.random())     // 0.5x - 3x, median ~1.2x
       : 0.8 + Math.random() * 0.4;           // 0.8x - 1.2x, the "messy grid"
   }
   function place(p) {
@@ -76,11 +81,13 @@
       (function (img, full) {                 // fall back to the original if no derivative
         img.onerror = function () { img.onerror = null; img.src = full; };
       })(img, c.full);
-      // lift the delicate, often semi-transparent cutouts so they read on the
-      // dark ground; invert first for dark-ink pieces so they come up light.
+      // dark-ink pieces get inverted so they read light; a touch of contrast
+      // firms them up. The default 'difference' blend does the heavy lifting —
+      // overlaps invert into the xerox texture, and no brightness boost is
+      // needed (that only mattered for the washed-out 'screen' blend).
       img.style.filter = c.invert
-        ? 'invert(1) brightness(1.7) contrast(1.2)'
-        : 'brightness(1.9) contrast(1.25)';
+        ? 'invert(1) contrast(1.2)'
+        : 'contrast(1.2)';
       var s = scaleFor();
       el.style.width = (BASE * s) + 'px';
       el.style.mixBlendMode = state.blend;
@@ -99,14 +106,23 @@
     }
   }
 
-  // slow drift, rate tied to scale = free parallax
+  // motion loop.
+  //   drift  — slow, smooth, rate tied to scale = free parallax
+  //   jagged — nervous + random: abrupt direction changes and per-frame jitter
   var raf = null;
   function tick() {
+    var jag = state.motion === 'jagged';
+    var pad = Math.max(innerWidth, innerHeight) * 0.7;
     for (var i = 0; i < pieces.length; i++) {
       var p = pieces[i];
-      p.x += p.vx * p.s * 0.25 * 1.4;
-      p.y += p.vy * p.s * 0.25 * 1.4;
-      var pad = Math.max(innerWidth, innerHeight) * 0.7;
+      if (jag) {
+        if (Math.random() < 0.10) { p.vx = Math.random() * 2 - 1; p.vy = Math.random() * 2 - 1; }
+        p.x += p.vx * p.s * 0.9 + (Math.random() - 0.5) * 3.2;
+        p.y += p.vy * p.s * 0.9 + (Math.random() - 0.5) * 3.2;
+      } else {
+        p.x += p.vx * p.s * 0.25 * 1.4;
+        p.y += p.vy * p.s * 0.25 * 1.4;
+      }
       if (p.x < -pad) p.x = innerWidth + pad;
       if (p.x > innerWidth + pad) p.x = -pad;
       if (p.y < -pad) p.y = innerHeight + pad;
@@ -117,15 +133,15 @@
   }
   function setMotion(m) {
     state.motion = m;
-    if (m === 'drift' && !reduce) { if (!raf) raf = requestAnimationFrame(tick); }
+    if (m !== 'still' && !reduce) { if (!raf) raf = requestAnimationFrame(tick); }
     else if (raf) { cancelAnimationFrame(raf); raf = null; }
     syncButtons();
   }
 
   // ---- controls ----
-  var BLENDS = ['screen', 'lighten', 'difference', 'exclusion', 'multiply'];
+  var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];
   var SCALES = ['tame', 'violent'];
-  var MOTIONS = ['still', 'drift'];
+  var MOTIONS = ['still', 'drift', 'jagged'];
 
   function build(id, values, onset) {
     var box = document.getElementById(id);
@@ -144,7 +160,7 @@
     document.querySelectorAll('#cutscale button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === state.scaleMode); });
     document.querySelectorAll('#cutmotion button').forEach(function (b) {
       b.classList.toggle('on', b.dataset.v === state.motion);
-      if (b.dataset.v === 'drift') b.disabled = reduce;
+      if (b.dataset.v !== 'still') b.disabled = reduce;
     });
     document.getElementById('cutcount').textContent = state.count;
   }
@@ -153,7 +169,7 @@
   build('cutscale', SCALES, function (v) { state.scaleMode = v; recompose(); syncButtons(); });
   build('cutmotion', MOTIONS, setMotion);
 
-  document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(14, state.count + 1); recompose(); syncButtons(); });
+  document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
   document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(3, state.count - 1); recompose(); syncButtons(); });
   document.getElementById('cutrecompose').addEventListener('click', recompose);
 

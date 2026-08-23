@@ -52,7 +52,7 @@ const WORKS = [
   { src:"images/j.png",   title:"pylon j",     year:"2026", cutout:true, invert:true },
   { src:"images/k.png",   title:"pylon k",     year:"2026", cutout:true },
   { src:"images/l.png",   title:"pylon l",     year:"2026", cutout:true, invert:true },
-  { src:"images/m.png",   title:"pylon m",     year:"2026", cutout:true },
+  { src:"images/m.png",   title:"pylon m",     year:"2026" },
   { src:"images/n.png",   title:"pylon n",     year:"2026", cutout:true },
   { src:"images/o.png",   title:"pylon o",     year:"2026" },
   { src:"images/p.png",   title:"pylon p",     year:"2026" },

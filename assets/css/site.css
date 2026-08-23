@@ -213,11 +213,21 @@ body{
 
 /* ---- end mark ---- */
 .fin{
+  position:relative;
+  z-index:31;               /* above field pieces (hover z-index is 30) so a
+                               drifting piece can never bury the end text */
   height:60vh;
   display:flex; align-items:center; justify-content:center;
   flex-direction:column; gap:18px;
   font-size:11px; letter-spacing:.34em;
   color:var(--dim); text-transform:lowercase;
+}
+/* a soft pool of ground behind the text so it stays legible even when a
+   bright piece sits directly behind it */
+.fin::before{
+  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse 62% 46% at 50% 50%,
+    rgba(8,8,10,.92) 0%, rgba(8,8,10,.55) 45%, transparent 75%);
 }
 
 /* ---- lightbox ---- */
@@ -395,6 +405,16 @@ body.canvasbody{
     left:auto; right:22px; top:auto;
     bottom:calc(14px + env(safe-area-inset-bottom));
   }
+
+  /* the sound toggle takes bottom-right on phones, so send the corner
+     'cutouts ->' link to bottom-left to avoid overlapping it. On the
+     cutouts page the control panel owns bottom-left, so that page keeps
+     its corner link bottom-right (no sound toggle there to collide with). */
+  .mark.br{
+    left:22px; right:auto;
+    bottom:calc(14px + env(safe-area-inset-bottom));
+  }
+  .cutoutbody .mark.br{ left:auto; right:22px; }
 
   /* the title tower, sized for phones */
   .intro h1{
