@@ -279,6 +279,45 @@ button.mark:hover{ color:var(--hot); }
 }
 .mark a:hover, .fin a:hover{ color:var(--hot); border-bottom-color:var(--hot); }
 
+/* ---- other transmissions: reveal tiktok + substack on hover/press ---- */
+.transmissions{ position:relative; display:flex; flex-direction:column; align-items:center; }
+/* the trigger looks exactly like a .fin link (buttons don't inherit font) */
+.transmissions-trigger{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px; letter-spacing:.34em; text-transform:lowercase;
+  color:var(--dim); background:none; border:none; padding:0; cursor:pointer;
+  border-bottom:1px solid transparent;
+  transition:color .3s ease, border-color .3s ease;
+}
+.transmissions-trigger:hover{ color:var(--hot); border-bottom-color:var(--hot); }
+/* the two links, hidden until the group is hovered, tapped, or focused.
+   absolutely positioned so revealing them doesn't shift the page. */
+.transmissions-links{
+  position:absolute; top:100%; left:50%;
+  transform:translateX(-50%) translateY(4px);
+  /* The links box overlaps the trigger (negative top margin) and carries the
+     visual spacing as top padding, so there is NO dead gap: the cursor moves
+     straight from the trigger onto a still-hoverable area and the links stay
+     open long enough to click. */
+  margin-top:-8px;
+  padding:20px 14px 0;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  white-space:nowrap;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease, visibility 0s linear .3s;
+}
+.transmissions:hover .transmissions-links,
+.transmissions:focus-within .transmissions-links{
+  opacity:1; visibility:visible; pointer-events:auto;
+  transform:translateX(-50%) translateY(0);
+  transition:opacity .3s ease, transform .3s ease, visibility 0s;
+}
+@media (prefers-reduced-motion:reduce){
+  .transmissions-links{ transform:translateX(-50%); transition:visibility 0s linear .3s; }
+  .transmissions:hover .transmissions-links,
+  .transmissions:focus-within .transmissions-links{ transform:translateX(-50%); transition:visibility 0s; }
+}
+
 /* ---- grid page: an infinite draggable sheet ---- */
 body.canvasbody{
   position:fixed; inset:0; width:100%;
