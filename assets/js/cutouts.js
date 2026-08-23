@@ -87,12 +87,9 @@
         img.onerror = function () { img.onerror = null; img.src = full; };
       })(img, c.full);
       // dark-ink pieces get inverted so they read light; a touch of contrast
-      // firms them up. The default 'difference' blend does the heavy lifting —
-      // overlaps invert into the xerox texture, and no brightness boost is
-      // needed (that only mattered for the washed-out 'screen' blend).
-      img.style.filter = c.invert
-        ? 'invert(1) contrast(1.2)'
-        : 'contrast(1.2)';
+      // firms them up. The blend mode does the rest.
+      var filt = c.invert ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
+      img.style.filter = filt;
       var s = scaleFor();
       el.style.width = (BASE * s) + 'px';
       el.style.mixBlendMode = state.blend;
@@ -106,7 +103,10 @@
         vy: (Math.random() * 2 - 1),
         phase: Math.random() * Math.PI * 2,     // float sway offset
         spin: (Math.random() * 2 - 1) * 0.25,   // spin speed, deg/frame
-        rot: 0
+        rot: 0,
+        z: i,                                    // paint order; raised when pinned
+        pinned: false,
+        baseFilter: filt
       };
       place(p);
       stage.appendChild(el);
@@ -127,6 +127,7 @@
     var pad = Math.max(innerWidth, innerHeight) * 0.7;
     for (var i = 0; i < pieces.length; i++) {
       var p = pieces[i];
+      if (p.pinned) continue;          // pinned pieces are frozen in place
       if (m === 'jagged') {
         if (Math.random() < 0.14) { p.vx = Math.random() * 2 - 1; p.vy = Math.random() * 2 - 1; }
         p.x += p.vx * p.s * JAG_SPEED + (Math.random() - 0.5) * JAG_JITTER;
@@ -156,6 +157,87 @@
     else if (raf) { cancelAnimationFrame(raf); raf = null; }
     syncButtons();
   }
+
+  // ---- pin a cutout: tap/click freezes it and brings it to front ----
+  // Cutouts are mostly transparent, so a bounding-box click would almost always
+  // grab a big piece's empty area. We sample each image's alpha at the tap point
+  // and pin the topmost piece that's actually opaque there.
+  var alphaCache = {}, zTop = 1000;
+  function alphaMap(img) {
+    var key = img.currentSrc || img.src;
+    if (alphaCache[key]) return alphaCache[key];
+    if (!(img.complete && img.naturalWidth)) return null;
+    var mw = 64, mh = Math.max(1, Math.round(64 * img.naturalHeight / img.naturalWidth));
+    var cv = document.createElement('canvas'); cv.width = mw; cv.height = mh;
+    var ctx = cv.getContext('2d'), d;
+    try { ctx.drawImage(img, 0, 0, mw, mh); d = ctx.getImageData(0, 0, mw, mh).data; }
+    catch (e) { return null; }
+    var a = new Uint8Array(mw * mh);
+    for (var i = 0; i < mw * mh; i++) a[i] = d[i * 4 + 3];
+    return (alphaCache[key] = { w: mw, h: mh, a: a });
+  }
+  function hitPiece(cx, cy) {
+    var order = pieces.slice().sort(function (a, b) { return b.z - a.z; }); // topmost first
+    for (var i = 0; i < order.length; i++) {
+      var p = order[i], img = p.el.firstChild, m = alphaMap(img);
+      if (!m) continue;
+      var W = parseFloat(p.el.style.width), H = W * (m.h / m.w);
+      var dx = cx - p.x, dy = cy - p.y;
+      if (p.rot) { var r = -p.rot * Math.PI / 180, co = Math.cos(r), si = Math.sin(r), nx = dx * co - dy * si; dy = dx * si + dy * co; dx = nx; }
+      var u = dx / W + 0.5, v = dy / H + 0.5;
+      if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+      var ai = Math.min(m.h - 1, (v * m.h) | 0) * m.w + Math.min(m.w - 1, (u * m.w) | 0);
+      if (m.a[ai] > 40) return p;
+    }
+    return null;
+  }
+  function togglePin(p) {
+    p.pinned = !p.pinned;
+    var img = p.el.firstChild;
+    if (p.pinned) {
+      p.z = ++zTop; p.el.style.zIndex = zTop;
+      img.style.filter = p.baseFilter + ' drop-shadow(0 0 7px rgba(228,226,221,.6))';
+    } else {
+      img.style.filter = p.baseFilter;
+    }
+  }
+  stage.addEventListener('click', function (e) {
+    var p = hitPiece(e.clientX, e.clientY);
+    if (p) togglePin(p);
+  });
+
+  // ---- capture the current frame as a PNG (redrawn to canvas so the blend,
+  // inversion and positions are reproduced exactly) ----
+  var BLEND_MAP = { normal: 'source-over', screen: 'screen', lighten: 'lighten', difference: 'difference', exclusion: 'exclusion', multiply: 'multiply' };
+  function exportImage() {
+    var k = Math.max(1.3, Math.min(2, window.devicePixelRatio || 1));
+    var cv = document.createElement('canvas');
+    cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k);
+    var ctx = cv.getContext('2d');
+    ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    var order = pieces.slice().sort(function (a, b) { return a.z - b.z; }); // bottom-up
+    for (var i = 0; i < order.length; i++) {
+      var p = order[i], img = p.el.firstChild;
+      if (!(img.complete && img.naturalWidth)) continue;
+      var w = parseFloat(p.el.style.width) * k, h = w * (img.naturalHeight / img.naturalWidth);
+      ctx.save();
+      ctx.globalCompositeOperation = BLEND_MAP[state.blend] || 'source-over';
+      try { ctx.filter = img.style.filter || 'none'; } catch (e) {}
+      ctx.translate(p.x * k, p.y * k);
+      if (p.rot) ctx.rotate(p.rot * Math.PI / 180);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+    var url;
+    try { url = cv.toDataURL('image/png'); } catch (e) { return; }  // synchronous + reliable
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'systemssystemssystems-cutouts-' + Date.now() + '.png';
+    a.target = '_blank';                   // iOS ignores download: opens the image to long-press-save
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  var saveBtn = document.getElementById('cutsave');
+  if (saveBtn) saveBtn.addEventListener('click', exportImage);
 
   // ---- controls ----
   var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];

@@ -483,6 +483,9 @@ body.canvasbody{
 .cutoutbody .crecompose{ color:var(--bone); }
 .cutoutbody .crecompose:hover{ color:var(--hot); }
 .cutoutbody .crecompose::before{ content:"\27F3\A0"; }
+.cutoutbody .csave{ color:var(--bone); }
+.cutoutbody .csave:hover{ color:var(--hot); }
+.cutoutbody .csave::before{ content:"\2193\A0"; }   /* down arrow */
 
 .cutoutbody .cuthint{
   position:fixed; z-index:5; bottom:16px; left:50%; transform:translateX(-50%);
