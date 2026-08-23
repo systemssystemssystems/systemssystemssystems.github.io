@@ -51,6 +51,7 @@ body{
 }
 .mark.tl{ top:18px; left:22px; }
 .mark.tr{ top:18px; right:22px; text-align:right; }
+.mark.br{ bottom:16px; right:22px; top:auto; text-align:right; }
 
 /* ---- opening screen ---- */
 .intro{
@@ -411,4 +412,65 @@ body.canvasbody{
 
   /* grid page: two columns on phones */
   .grid{ grid-template-columns:repeat(2, 1fr); gap:14px; }
+}
+
+/* ================================================================
+   CUTOUTS PAGE (cutouts.html) — a compositor surface.
+   Everything here is scoped under .cutoutbody so it can't touch the
+   field or grid pages, and the whole page deletes cleanly.
+   ================================================================ */
+.cutoutbody{ position:fixed; inset:0; width:100%; height:100%; overflow:hidden; }
+
+.cutoutbody .cutstage{ position:fixed; inset:0; z-index:1; overflow:hidden; }
+.cutoutbody .cutout{
+  position:absolute; top:0; left:0;
+  transform-origin:center center; will-change:transform;
+}
+.cutoutbody .cutout img{ display:block; width:100%; height:auto; }
+
+/* legibility scrims (between the stage and the marks) */
+.cutoutbody .cutscrim{ position:fixed; left:0; right:0; z-index:4; pointer-events:none; }
+.cutoutbody .cutscrim.t{ top:0; height:72px;
+  background:linear-gradient(to bottom, rgba(8,8,10,.82), transparent); }
+.cutoutbody .cutscrim.b{ bottom:0; height:280px;
+  background:linear-gradient(to top, rgba(8,8,10,.96), rgba(8,8,10,.72) 38%, rgba(8,8,10,.28) 66%, transparent); }
+.cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:440px; height:360px;
+  background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.94), rgba(8,8,10,.5) 46%, transparent 72%); }
+
+/* control cluster — same lowercase, letterspaced voice as the marks */
+.cutoutbody #cutpanel{
+  position:fixed; z-index:6; left:22px; bottom:44px;
+  display:flex; flex-direction:column; gap:13px;
+  font-size:11px; letter-spacing:.18em; text-transform:lowercase;
+}
+.cutoutbody .crow{ display:flex; align-items:baseline; gap:12px; }
+.cutoutbody .clab{ color:#45454a; width:58px; flex:none; letter-spacing:.2em; }
+.cutoutbody .copts{ display:flex; gap:12px; flex-wrap:wrap; }
+.cutoutbody #cutpanel button{
+  font:inherit; letter-spacing:inherit; text-transform:inherit;
+  background:none; border:none; padding:0; cursor:pointer;
+  color:var(--dim); transition:color .25s ease;
+}
+.cutoutbody #cutpanel button:hover{ color:var(--bone); }
+.cutoutbody #cutpanel button.on{ color:var(--hot); }
+.cutoutbody #cutpanel button:disabled{ color:#2c2c30; cursor:default; }
+.cutoutbody #cutpanel button:focus-visible{ outline:1px solid var(--hot); outline-offset:3px; }
+.cutoutbody .cstepper{ display:flex; align-items:baseline; gap:10px; }
+.cutoutbody .cval{ color:var(--bone); min-width:1.4em; text-align:center; font-variant-numeric:tabular-nums; }
+.cutoutbody .crecompose{ color:var(--bone); }
+.cutoutbody .crecompose:hover{ color:var(--hot); }
+.cutoutbody .crecompose::before{ content:"\27F3\A0"; }
+
+.cutoutbody .cuthint{
+  position:fixed; z-index:5; bottom:16px; left:50%; transform:translateX(-50%);
+  font-size:11px; letter-spacing:.26em; text-transform:lowercase;
+  color:#4a4a49; text-align:center; white-space:nowrap; pointer-events:none;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .cutoutbody .cutout{ will-change:auto; }
+}
+@media (max-width:640px){
+  .cutoutbody #cutpanel{ bottom:38px; gap:11px; }
+  .cutoutbody .cuthint{ font-size:9px; letter-spacing:.18em; }
 }

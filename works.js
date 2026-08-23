@@ -1,4 +1,7 @@
-/* YOUR IMAGES — newest at the top. The only file you edit day-to-day. */
+/* YOUR IMAGES — newest at the top. The only file you edit day-to-day.
+   Optional extra fields (ignored by the field + grid pages):
+     cutout:true   — this work has a transparent background; include it on the cutouts page
+     invert:true   — it's dark ink, so flip it to light there so it reads on the dark ground */
 const WORKS = [
   { src:"images/bo.png",  title:"pylon bo",   year:"2026" },
   { src:"images/bp.png",  title:"pylon bp",   year:"2026" },
@@ -46,11 +49,11 @@ const WORKS = [
   { src:"images/g.png",   title:"pylon g",     year:"2026" },
   { src:"images/h.jpeg",  title:"pylon h",     year:"2026" },
   { src:"images/i.jpeg",  title:"pylon i",     year:"2026" },
-  { src:"images/j.png",   title:"pylon j",     year:"2026" },
-  { src:"images/k.png",   title:"pylon k",     year:"2026" },
-  { src:"images/l.png",   title:"pylon l",     year:"2026" },
-  { src:"images/m.png",   title:"pylon m",     year:"2026" },
-  { src:"images/n.png",   title:"pylon n",     year:"2026" },
+  { src:"images/j.png",   title:"pylon j",     year:"2026", cutout:true, invert:true },
+  { src:"images/k.png",   title:"pylon k",     year:"2026", cutout:true },
+  { src:"images/l.png",   title:"pylon l",     year:"2026", cutout:true, invert:true },
+  { src:"images/m.png",   title:"pylon m",     year:"2026", cutout:true },
+  { src:"images/n.png",   title:"pylon n",     year:"2026", cutout:true },
   { src:"images/o.png",   title:"pylon o",     year:"2026" },
   { src:"images/p.png",   title:"pylon p",     year:"2026" },
   { src:"images/q.png",   title:"pylon q",     year:"2026" },
@@ -70,10 +73,10 @@ const WORKS = [
   { src:"images/ae.png",   title:"pylon ae",     year:"2026" },
   { src:"images/af.png",   title:"pylon af",     year:"2026" },
   { src:"images/ag.png",   title:"pylon ag",     year:"2026" },
-  { src:"images/ah.png",   title:"pylon ah",     year:"2026" },
-  { src:"images/ai.png",   title:"pylon ai",     year:"2026" },
-  { src:"images/aj.png",   title:"pylon aj",     year:"2026" },
-  { src:"images/ak.png",   title:"pylon ak",     year:"2026" },
+  { src:"images/ah.png",   title:"pylon ah",     year:"2026", cutout:true, invert:true },
+  { src:"images/ai.png",   title:"pylon ai",     year:"2026", cutout:true, invert:true },
+  { src:"images/aj.png",   title:"pylon aj",     year:"2026", cutout:true, invert:true },
+  { src:"images/ak.png",   title:"pylon ak",     year:"2026", cutout:true, invert:true },
   { src:"images/al.png",   title:"pylon al",     year:"2026" },
   { src:"images/am.png",   title:"pylon am",     year:"2026" },
   { src:"images/an.png",   title:"pylon an",     year:"2026" },

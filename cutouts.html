@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>systemssystemssystems — cutouts</title>
+<meta name="description" content="systemssystemssystems — cutouts layered and blended on the dark ground. a new composition every load.">
+<link rel="canonical" href="https://systemssystemssystems.faith/cutouts.html">
+<meta name="theme-color" content="#08080a">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="systemssystemssystems">
+<meta property="og:title" content="systemssystemssystems — cutouts">
+<meta property="og:description" content="cutouts layered and blended on the dark ground. a new composition every load.">
+<meta property="og:url" content="https://systemssystemssystems.faith/cutouts.html">
+<meta property="og:image" content="https://systemssystemssystems.faith/images/1.2.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body class="cutoutbody">
+
+<div class="grain" aria-hidden="true"></div>
+
+<div class="mark tl">systems systems systems</div>
+<div class="mark tr"><a href="index.html">&larr; field</a></div>
+<div class="mark br"><a href="grid.html">grid &rarr;</a></div>
+
+<!-- the compositor surface: filled and moved by cutouts.js -->
+<main class="cutstage" id="cutstage" aria-label="cutouts — a new composition every load"></main>
+
+<div class="cutscrim t" aria-hidden="true"></div>
+<div class="cutscrim b" aria-hidden="true"></div>
+<div class="cutscrim bl" aria-hidden="true"></div>
+
+<nav id="cutpanel" aria-label="compositor controls">
+  <div class="crow"><span class="clab">blend</span><div class="copts" id="cutblend"></div></div>
+  <div class="crow"><span class="clab">scale</span><div class="copts" id="cutscale"></div></div>
+  <div class="crow"><span class="clab">motion</span><div class="copts" id="cutmotion"></div></div>
+  <div class="crow"><span class="clab">count</span>
+    <div class="cstepper">
+      <button type="button" id="cutless" aria-label="fewer cutouts">&minus;</button>
+      <span class="cval" id="cutcount">6</span>
+      <button type="button" id="cutmore" aria-label="more cutouts">+</button>
+    </div>
+  </div>
+  <div class="crow"><button type="button" class="crecompose" id="cutrecompose">recompose</button></div>
+</nav>
+
+<div class="cuthint">a reload draws a new hand &middot; switch blend to re-read the same composition</div>
+
+<script src="works.js"></script>
+<script src="cutouts-extra.js"></script>
+<script src="assets/js/cutouts.js"></script>
+</body>
+</html>
