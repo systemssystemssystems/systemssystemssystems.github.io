@@ -211,10 +211,85 @@
     // candidate, so the composition grows piece by piece.
     if (p.pinned && state.count < 5 && pieces.length < 40) spawnPiece(pieces.length);
   }
-  stage.addEventListener('click', function (e) {
-    var p = hitPiece(e.clientX, e.clientY);
-    if (p) togglePin(p);
+  // Direct manipulation of pieces:
+  //   tap        = pin/unpin
+  //   drag       = move (when the piece isn't being animated: still mode, or pinned)
+  //   wheel      = resize (desktop)
+  //   two-finger = resize (pinch, mobile)
+  //   drop on bin = remove
+  var bin = document.getElementById('cutbin');
+  function draggable(p) { return state.motion === 'still' || p.pinned; }
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function resizeTo(p, s) { p.s = clamp(s, 0.12, 6); p.el.style.width = (BASE * p.s) + 'px'; place(p); }
+  function removePiece(p) {
+    var i = pieces.indexOf(p); if (i >= 0) pieces.splice(i, 1);
+    if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
+  }
+  function overBin(x, y) {
+    if (!bin) return false;
+    var r = bin.getBoundingClientRect(), pad = 26;
+    return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+  }
+
+  var ptrs = {}, grab = null, pinch = null;
+  function pdist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  stage.addEventListener('pointerdown', function (e) {
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(ptrs);
+    if (ids.length === 1) {
+      var p = hitPiece(e.clientX, e.clientY);
+      if (p) {
+        grab = { p: p, ox: e.clientX - p.x, oy: e.clientY - p.y, x0: e.clientX, y0: e.clientY, moved: false };
+        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+      }
+    } else if (ids.length === 2 && grab && draggable(grab.p)) {
+      pinch = { p: grab.p, d0: pdist(ptrs[ids[0]], ptrs[ids[1]]) || 1, s0: grab.p.s };
+      grab.moved = true;
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    }
   });
+  stage.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (pinch) {
+      var ids = Object.keys(ptrs);
+      if (ids.length >= 2) resizeTo(pinch.p, pinch.s0 * (pdist(ptrs[ids[0]], ptrs[ids[1]]) / pinch.d0));
+      return;
+    }
+    if (!grab) return;
+    if (!grab.moved && (Math.abs(e.clientX - grab.x0) > 5 || Math.abs(e.clientY - grab.y0) > 5)) {
+      grab.moved = true;
+      if (draggable(grab.p)) { grab.p.z = ++zTop; grab.p.el.style.zIndex = zTop; }  // lift to front while moving
+    }
+    if (grab.moved && draggable(grab.p)) {
+      grab.p.x = e.clientX - grab.ox; grab.p.y = e.clientY - grab.oy; place(grab.p);
+      if (bin) { bin.classList.add('show'); bin.classList.toggle('over', overBin(e.clientX, e.clientY)); }
+    }
+  });
+  function endPointer(e) {
+    var droppedOnBin = grab && grab.moved && draggable(grab.p) && overBin(e.clientX, e.clientY);
+    delete ptrs[e.pointerId];
+    if (pinch) {
+      if (Object.keys(ptrs).length < 2) { pinch = null; grab = null; if (bin) bin.classList.remove('show', 'over'); }
+      return;
+    }
+    if (grab) {
+      if (!grab.moved) togglePin(grab.p);
+      else if (droppedOnBin) removePiece(grab.p);
+      grab = null; if (bin) bin.classList.remove('show', 'over');
+    }
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+
+  stage.addEventListener('wheel', function (e) {   // desktop resize
+    var p = hitPiece(e.clientX, e.clientY);
+    if (!p || !draggable(p)) return;
+    e.preventDefault();
+    resizeTo(p, p.s * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+  }, { passive: false });
 
   // ---- capture the current frame as a PNG (redrawn to canvas so the blend,
   // inversion and positions are reproduced exactly) ----

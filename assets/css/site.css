@@ -444,7 +444,7 @@ body.canvasbody{
    ================================================================ */
 .cutoutbody{ position:fixed; inset:0; width:100%; height:100%; overflow:hidden; }
 
-.cutoutbody .cutstage{ position:fixed; inset:0; z-index:1; overflow:hidden; }
+.cutoutbody .cutstage{ position:fixed; inset:0; z-index:1; overflow:hidden; touch-action:none; }
 .cutoutbody .cutout{
   position:absolute; top:0; left:0;
   transform-origin:center center; will-change:transform;
@@ -499,7 +499,8 @@ body.canvasbody{
 body.cutoutbody.page-inverted{ filter:invert(1); }
 body.cutoutbody.page-inverted #cutpanel,
 body.cutoutbody.page-inverted .mark,
-body.cutoutbody.page-inverted .cuttray{ filter:invert(1); }
+body.cutoutbody.page-inverted .cuttray,
+body.cutoutbody.page-inverted .cutbin{ filter:invert(1); }
 /* the double-invert renders controls in their normal (dark-ground) palette, but
    they now sit on a light ground — recolour them dark so they stay legible */
 body.cutoutbody.page-inverted .mark,
@@ -546,6 +547,20 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
 .cutoutbody .tray-item:hover{ border-color:rgba(228,226,221,.35); }
 .cutoutbody .tray-item.added{ opacity:.35; }
 .cutoutbody .tray-item img{ max-width:84%; max-height:84%; object-fit:contain; pointer-events:none; }
+
+/* the bin: fades in while dragging a piece; drop a piece on it to remove it */
+.cutoutbody .cutbin{
+  position:fixed; z-index:8; left:50%; top:46px; bottom:auto;   /* top-centre, clear of the panel */
+  transform:translateX(-50%) translateY(-14px);
+  padding:11px 22px; font-size:11px; letter-spacing:.24em; text-transform:lowercase;
+  color:var(--dim); background:rgba(8,8,10,.72);
+  border:1px solid rgba(228,226,221,.18);
+  opacity:0; pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease, color .18s ease, border-color .18s ease, background .18s ease;
+}
+.cutoutbody .cutbin::before{ content:"\2715\A0"; }   /* ✕ */
+.cutoutbody .cutbin.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.cutoutbody .cutbin.over{ color:var(--bone); border-color:#c8524f; background:rgba(48,12,12,.82); }
 
 /* the ghost that follows the cursor while dragging a cutout out of the tray */
 .drag-ghost{
