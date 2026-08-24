@@ -350,6 +350,14 @@
   }
   if (sizeEl) sizeEl.addEventListener('input', function () { if (active) resizeTo(active, Math.exp(SLO + (SHI - SLO) * (+sizeEl.value / 1000))); });
   if (rotEl) rotEl.addEventListener('input', function () { if (active) { active.rot = +rotEl.value; place(active); } });
+
+  // fine nudges (web only — hidden on phones): the sliders sweep coarse, these
+  // +/- give an exact small step for the last bit of precision a trackpad can't.
+  function nudgeSize(dir) { if (active) { resizeTo(active, active.s * Math.pow(1.05, dir)); syncSize(); } }   // ~5% per click
+  function nudgeRot(dir) { if (active) { active.rot = ((Math.round(active.rot) + dir * 2) % 360 + 360) % 360; place(active); syncRot(); } }   // 2° per click
+  function nudge(id, fn, dir) { var b = document.getElementById(id); if (b) b.addEventListener('click', function () { fn(dir); }); }
+  nudge('cutsizedn', nudgeSize, -1); nudge('cutsizeup', nudgeSize, 1);
+  nudge('cutrotdn', nudgeRot, -1); nudge('cutrotup', nudgeRot, 1);
   if (lockEl) lockEl.addEventListener('click', function () {
     if (!active) return;
     pinPiece(active, !active.pinned);

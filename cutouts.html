@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>systemssystemssystems — cutouts</title>
-<meta name="description" content="systemssystemssystems — cutouts layered and blended on the dark ground. a new composition every load.">
+<title>systemssystemssystems collage</title>
+<meta name="description" content="systemssystemssystems collage: cutouts layered and blended on the dark ground. a new composition every load.">
 <link rel="canonical" href="https://systemssystemssystems.faith/cutouts.html">
 <meta name="theme-color" content="#08080a">
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="systemssystemssystems">
-<meta property="og:title" content="systemssystemssystems — cutouts">
-<meta property="og:description" content="cutouts layered and blended on the dark ground. a new composition every load.">
+<meta property="og:title" content="systemssystemssystems collage">
+<meta property="og:description" content="collage: cutouts layered and blended on the dark ground. a new composition every load.">
 <meta property="og:url" content="https://systemssystemssystems.faith/cutouts.html">
 <meta property="og:image" content="https://systemssystemssystems.faith/images/1.2.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -37,7 +37,7 @@
 <button type="button" class="panelbtn" id="cutctrls" aria-pressed="false" aria-expanded="false" aria-controls="cutpanel">controls</button>
 
 <!-- the compositor surface: filled and moved by cutouts.js -->
-<main class="cutstage" id="cutstage" aria-label="cutouts — a new composition every load"></main>
+<main class="cutstage" id="cutstage" aria-label="collage — a new composition every load"></main>
 
 <div class="cutscrim t" aria-hidden="true"></div>
 <div class="cutscrim b" aria-hidden="true"></div>
@@ -55,9 +55,13 @@
     </div>
   </div>
   <div class="crow cedit"><span class="clab">size</span>
-    <input type="range" class="csize" id="cutsize" min="0" max="1000" value="500" aria-label="resize selected cutout"></div>
+    <button type="button" class="cnudge" id="cutsizedn" aria-label="smaller">&minus;</button>
+    <input type="range" class="csize" id="cutsize" min="0" max="1000" value="500" aria-label="resize selected cutout">
+    <button type="button" class="cnudge" id="cutsizeup" aria-label="larger">+</button></div>
   <div class="crow cedit"><span class="clab">rotate</span>
-    <input type="range" class="csize" id="cutrot" min="0" max="360" value="0" aria-label="rotate selected cutout"></div>
+    <button type="button" class="cnudge" id="cutrotdn" aria-label="rotate counter-clockwise">&minus;</button>
+    <input type="range" class="csize" id="cutrot" min="0" max="360" value="0" aria-label="rotate selected cutout">
+    <button type="button" class="cnudge" id="cutrotup" aria-label="rotate clockwise">+</button></div>
   <div class="crow cedit">
     <button type="button" class="cdup" id="cutdup">duplicate</button>
     <button type="button" class="cpinv" id="cutpinv" aria-pressed="false">invert</button>
