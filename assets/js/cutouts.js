@@ -387,12 +387,12 @@
     document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
   });
 
-  // ---- capture the current frame as a PNG. Redrawn to a canvas so it matches
-  // what's actually on screen. With a background it rebuilds the page's own
-  // layers — paper texture + top vignette under the pieces, legibility scrims +
-  // film grain over them — so a 'with background' save is what a screenshot would
-  // be (minus the UI chrome). The transient selection / lock halos are left out
-  // (drawn with each piece's baseFilter). ----
+  // ---- capture the current frame as a PNG. Redrawn to a canvas so a 'with
+  // background' save looks like the site: paper texture + top vignette under the
+  // pieces and film grain over them (the page's own background layers). The
+  // legibility scrims are deliberately NOT drawn — they only exist to make the
+  // controls readable, so they'd just darken the saved artwork. The transient
+  // selection / lock halos are left out too (drawn with each piece's baseFilter). ----
   var BLEND_MAP = { normal: 'source-over', screen: 'screen', lighten: 'lighten', difference: 'difference', exclusion: 'exclusion', multiply: 'multiply' };
 
   // preload the two image layers the page paints itself with, so they're ready
@@ -418,21 +418,6 @@
     var g = ctx.createRadialGradient(W * 0.5, -0.2 * H, 0, W * 0.5, -0.2 * H, Math.max(W, H));
     g.addColorStop(0, 'rgba(18,18,21,0.5)'); g.addColorStop(0.6, 'rgba(18,18,21,0)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  }
-  function drawScrims(ctx, W, H, k) {            // the three .cutscrim gradients, over the pieces
-    ctx.globalCompositeOperation = 'source-over';
-    var gt = ctx.createLinearGradient(0, 0, 0, 90 * k);
-    gt.addColorStop(0, 'rgba(8,8,10,0.9)'); gt.addColorStop(0.55, 'rgba(8,8,10,0.5)'); gt.addColorStop(1, 'rgba(8,8,10,0)');
-    ctx.fillStyle = gt; ctx.fillRect(0, 0, W, 90 * k);
-    var gb = ctx.createLinearGradient(0, H, 0, H - 300 * k);
-    gb.addColorStop(0, 'rgba(8,8,10,0.97)'); gb.addColorStop(0.38, 'rgba(8,8,10,0.78)'); gb.addColorStop(0.66, 'rgba(8,8,10,0.32)'); gb.addColorStop(1, 'rgba(8,8,10,0)');
-    ctx.fillStyle = gb; ctx.fillRect(0, H - 300 * k, W, 300 * k);
-    ctx.save();                                  // bottom-left corner glow (elliptical, anchored at 0,H)
-    ctx.translate(0, H); ctx.scale(625 * k, 516 * k);
-    var gbl = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-    gbl.addColorStop(0, 'rgba(8,8,10,0.98)'); gbl.addColorStop(0.46, 'rgba(8,8,10,0.7)'); gbl.addColorStop(0.76, 'rgba(8,8,10,0)');
-    ctx.fillStyle = gbl; ctx.fillRect(-2, -2, 4, 4);
-    ctx.restore();
   }
   function drawGrain(ctx, W, H, k) {            // the .grain SVG noise, at its live opacity + animation offset
     if (!(grainImg.complete && grainImg.naturalWidth)) return;
@@ -468,7 +453,7 @@
       ctx.drawImage(img, -w / 2, -h / 2, w, h);
       ctx.restore();
     }
-    if (opts.background) { drawScrims(ctx, W, H, k); drawGrain(ctx, W, H, k); }   // scrims + grain, over the pieces
+    if (opts.background) drawGrain(ctx, W, H, k);   // grain over the pieces (scrims are UI-only, left out)
     // negative look: invert the whole stack's RGB but keep alpha — matches the
     // page's filter:invert(1), and (without a background) keeps the pieces cut out
     if (opts.negative) {
