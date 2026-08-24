@@ -498,7 +498,8 @@ body.canvasbody{
    controls + marks back to normal so they stay legible on the flipped ground */
 body.cutoutbody.page-inverted{ filter:invert(1); }
 body.cutoutbody.page-inverted #cutpanel,
-body.cutoutbody.page-inverted .mark{ filter:invert(1); }
+body.cutoutbody.page-inverted .mark,
+body.cutoutbody.page-inverted .cuttray{ filter:invert(1); }
 /* the double-invert renders controls in their normal (dark-ground) palette, but
    they now sit on a light ground — recolour them dark so they stay legible */
 body.cutoutbody.page-inverted .mark,
@@ -509,6 +510,60 @@ body.cutoutbody.page-inverted #cutpanel button.on{ color:#101013; }
 body.cutoutbody.page-inverted #cutpanel .clab{ color:#8c8c90; }
 body.cutoutbody.page-inverted #cutpanel .cval{ color:#101013; }
 body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
+
+/* ---- cutout palette (right-edge tray): drag/tap a cutout onto the canvas ---- */
+.cutoutbody .cuttray{
+  position:fixed; top:0; right:0; height:100%; z-index:7;
+  display:flex; align-items:center;
+  transform:translateX(calc(100% - 24px));   /* hidden; handle peeks in */
+  transition:transform .28s ease;
+}
+.cutoutbody .cuttray:hover,
+.cutoutbody .cuttray.open{ transform:translateX(0); }
+.cutoutbody .tray-handle{
+  align-self:center; flex:none; width:24px; height:150px; padding:0;
+  writing-mode:vertical-rl; text-orientation:mixed;
+  background:rgba(8,8,10,.72); color:var(--dim);
+  font-family:inherit; font-size:11px; letter-spacing:.24em; text-transform:lowercase;
+  border:none; border-left:1px solid rgba(228,226,221,.14); cursor:pointer;
+  transition:color .25s ease;
+}
+.cutoutbody .tray-handle:hover{ color:var(--bone); }
+.cutoutbody .tray-items{
+  width:134px; height:100%; box-sizing:border-box;
+  background:rgba(9,9,11,.9); border-left:1px solid rgba(228,226,221,.1);
+  overflow-y:auto; overflow-x:hidden;
+  /* top/bottom inset clears the corner marks (← field, grid →) */
+  padding:48px 13px; display:flex; flex-direction:column; gap:12px;
+}
+.cutoutbody .tray-item{
+  flex:none; width:100%; aspect-ratio:1/1;
+  background:#141417; border:1px solid rgba(228,226,221,.09);
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab; touch-action:none;
+  transition:border-color .2s ease, opacity .2s ease;
+}
+.cutoutbody .tray-item:hover{ border-color:rgba(228,226,221,.35); }
+.cutoutbody .tray-item.added{ opacity:.35; }
+.cutoutbody .tray-item img{ max-width:84%; max-height:84%; object-fit:contain; pointer-events:none; }
+
+/* the ghost that follows the cursor while dragging a cutout out of the tray */
+.drag-ghost{
+  position:fixed; z-index:60; left:0; top:0; width:130px; height:130px;
+  transform:translate(-50%,-50%); pointer-events:none; opacity:0;
+  transition:opacity .12s ease;
+}
+.drag-ghost.show{ opacity:.82; }
+.drag-ghost img{ max-width:100%; max-height:100%; object-fit:contain; }
+
+@media (max-width:640px){
+  /* phones: same right-edge tray, but tap-to-add (no drag) and a bit narrower */
+  .cutoutbody .cuttray{ transform:translateX(calc(100% - 22px)); }
+  .cutoutbody .cuttray.open{ transform:translateX(0); }
+  .cutoutbody .tray-handle{ height:120px; }
+  .cutoutbody .tray-items{ width:116px; padding:46px 10px; }
+  .cutoutbody .tray-item{ cursor:pointer; touch-action:auto; }
+}
 
 .cutoutbody .cuthint{
   position:fixed; z-index:5; bottom:16px; left:50%; transform:translateX(-50%);

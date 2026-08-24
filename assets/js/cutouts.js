@@ -72,8 +72,10 @@
     p.el.style.transform = t;
   }
 
-  function spawnPiece(z) {
-    var c = pick(POOL);
+  // opts (all optional): cutout (specific pool item), x, y (place here), scale
+  function spawnPiece(z, opts) {
+    opts = opts || {};
+    var c = opts.cutout || pick(POOL);
     var el = document.createElement('div');
     el.className = 'cutout';
     var img = document.createElement('img');
@@ -87,14 +89,14 @@
     // firms them up. The blend mode does the rest.
     var filt = c.invert ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
     img.style.filter = filt;
-    var s = scaleFor();
+    var s = opts.scale || scaleFor();
     el.style.width = (BASE * s) + 'px';
     el.style.mixBlendMode = state.blend;
     el.appendChild(img);
     var p = {
       el: el,
-      x: (Math.random() * 1.2 - 0.1) * innerWidth,
-      y: (Math.random() * 1.2 - 0.1) * innerHeight,
+      x: opts.x != null ? opts.x : (Math.random() * 1.2 - 0.1) * innerWidth,
+      y: opts.y != null ? opts.y : (Math.random() * 1.2 - 0.1) * innerHeight,
       s: s,
       vx: (Math.random() * 2 - 1),
       vy: (Math.random() * 2 - 1),
@@ -193,18 +195,21 @@
     }
     return null;
   }
-  function togglePin(p) {
-    p.pinned = !p.pinned;
+  function pinPiece(p, on) {
+    p.pinned = on;
     var img = p.el.firstChild;
-    if (p.pinned) {
+    if (on) {
       p.z = ++zTop; p.el.style.zIndex = zTop;
       img.style.filter = p.baseFilter + ' drop-shadow(0 0 7px rgba(228,226,221,.6))';
-      // low-count "build a collage" mode: pinning one you like drops in a fresh
-      // candidate, so the composition grows piece by piece.
-      if (state.count < 5 && pieces.length < 40) spawnPiece(pieces.length);
     } else {
       img.style.filter = p.baseFilter;
     }
+  }
+  function togglePin(p) {
+    pinPiece(p, !p.pinned);
+    // low-count "build a collage" mode: pinning one you like drops in a fresh
+    // candidate, so the composition grows piece by piece.
+    if (p.pinned && state.count < 5 && pieces.length < 40) spawnPiece(pieces.length);
   }
   stage.addEventListener('click', function (e) {
     var p = hitPiece(e.clientX, e.clientY);
@@ -258,6 +263,84 @@
     invertBtn.classList.toggle('on', on);
     invertBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
+
+  // ---- cutout palette (right-edge tray): drag a specific cutout onto the
+  // canvas to place it, or (mobile) tap one to drop it in. Placed pieces land
+  // pinned so they stay where you put them. ----
+  var tray = document.getElementById('cuttray');
+  var trayItems = document.getElementById('trayItems');
+  var trayHandle = document.getElementById('trayHandle');
+
+  function dropCutout(cutout, x, y) {
+    var s = 0.9 + Math.random() * 0.5;
+    var p = spawnPiece(pieces.length, { cutout: cutout, x: x, y: y, scale: s });
+    pinPiece(p, true);                      // placed pieces stay put (frozen + front)
+  }
+  function centreDrop(cutout) {
+    dropCutout(cutout, innerWidth / 2 + (Math.random() * 90 - 45), innerHeight * 0.42 + (Math.random() * 90 - 45));
+  }
+
+  if (tray && trayItems) {
+    POOL.forEach(function (c) {
+      var it = document.createElement('div');
+      it.className = 'tray-item';
+      var im = document.createElement('img');
+      im.src = c.thumb; im.alt = ''; im.draggable = false;
+      im.style.filter = c.invert ? 'invert(1)' : 'none';
+      (function (im, full) { im.onerror = function () { im.onerror = null; im.src = full; }; })(im, c.full);
+      it.appendChild(im);
+      if (isMobile) {
+        // tap to add; the strip scrolls natively on swipe
+        it.addEventListener('click', function () {
+          centreDrop(c);
+          it.classList.add('added'); setTimeout(function () { it.classList.remove('added'); }, 220);
+        });
+      } else {
+        it.addEventListener('pointerdown', function (e) { startDrag(e, c, im); });
+      }
+      trayItems.appendChild(it);
+    });
+    if (trayHandle) trayHandle.addEventListener('click', function () {
+      var open = tray.classList.toggle('open');
+      trayHandle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
+  // pointer drag (desktop): ghost follows the cursor; drop on the canvas places
+  var drag = null;
+  function startDrag(e, cutout, srcImg) {
+    if (e.button != null && e.button !== 0) return;
+    e.preventDefault();
+    if (tray) tray.classList.add('open');
+    var ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    var g = document.createElement('img'); g.src = srcImg.src; g.style.filter = srcImg.style.filter;
+    ghost.appendChild(g);
+    document.body.appendChild(ghost);
+    drag = { cutout: cutout, ghost: ghost, x0: e.clientX, y0: e.clientY, moved: false };
+    moveGhost(e.clientX, e.clientY);
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragUp);
+    window.addEventListener('pointercancel', onDragUp);
+  }
+  function moveGhost(x, y) { if (drag) { drag.ghost.style.left = x + 'px'; drag.ghost.style.top = y + 'px'; } }
+  function onDragMove(e) {
+    if (!drag) return;
+    if (Math.abs(e.clientX - drag.x0) > 6 || Math.abs(e.clientY - drag.y0) > 6) { drag.moved = true; drag.ghost.classList.add('show'); }
+    moveGhost(e.clientX, e.clientY);
+  }
+  function onDragUp(e) {
+    if (!drag) return;
+    var overTray = tray && inRect(e.clientX, e.clientY, tray.getBoundingClientRect());
+    if (drag.moved && !overTray) dropCutout(drag.cutout, e.clientX, e.clientY);
+    else if (!drag.moved) centreDrop(drag.cutout);   // a click, not a drag → add at centre
+    if (drag.ghost) drag.ghost.remove();
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragUp);
+    window.removeEventListener('pointercancel', onDragUp);
+    drag = null;
+  }
+  function inRect(x, y, r) { return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }
 
   // ---- controls ----
   var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];
