@@ -64,12 +64,13 @@ and `images/cutouts/`.
   the canvas (mouse or touch — `touch-action:pan-y`, so a vertical swipe scrolls the strip and a
   horizontal pull drags a cutout out) or tap to add at centre. Placed pieces are **unpinned** so the
   motion applies to them. Editing (active when a piece isn't being animated — motion `still`, or the
-  piece is locked): **click a piece to select it** (bright halo + a `size / lock / remove` row appears
-  in the panel; `active` piece). The selected piece **drags from anywhere inside it, even a transparent
-  area** (a trackpad misses opaque-only hit-tests too easily). Resize via the **size slider**
-  (0.03×–18×, log) — the dependable path on a trackpad; wheel also resizes (desktop, proportional +
-  locks onto the started piece) and two-finger **pinch** on mobile. **lock** = pin (survives motion,
-  frozen); **remove** or drag onto the top-centre **bin** deletes. The browser's own pinch-zoom / gesture
+  piece is locked): **click a piece to select it** (bright halo + `size / rotate / motion lock / remove`
+  rows appear in the panel, just above the actions row; `active` piece). The selected piece **drags from
+  anywhere inside it, even a transparent area** (a trackpad misses opaque-only hit-tests too easily).
+  Resize via the **size slider** (0.03×–18×, log) — the dependable path on a trackpad; wheel also resizes
+  (desktop, proportional + locks onto the started piece) and two-finger **pinch** on mobile. **rotate
+  slider** sets `p.rot` (0–360). **motion lock** = pin (survives motion, frozen); **remove** or drag onto
+  the top-centre **bin** deletes. The browser's own pinch-zoom / gesture
   nav is **blocked on this page** (a trackpad pinch would otherwise zoom the page / pop the tab overview
   — `ctrlKey` wheel + `gesturestart/change/end` preventDefault, and the canvas wheel always
   preventDefaults). Hit-testing is **alpha-accurate**. Primitives: `spawnPiece(z,opts)`, `pinPiece(p,on)`,

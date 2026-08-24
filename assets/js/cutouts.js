@@ -313,23 +313,27 @@
   // ---- selection: a slider is the dependable resize on web (a trackpad pinch
   // otherwise zooms the page, not the piece). Click a piece to select it; the
   // 'size' row + lock + remove act on the selection. ----
-  var editRow = document.getElementById('cutedit');
+  var editRows = document.querySelectorAll('.cedit');
   var sizeEl = document.getElementById('cutsize');
+  var rotEl = document.getElementById('cutrot');
   var lockEl = document.getElementById('cutlock');
   var delEl = document.getElementById('cutdel');
   var SLO = Math.log(0.03), SHI = Math.log(18);
+  function showEdit(on) { for (var i = 0; i < editRows.length; i++) editRows[i].classList.toggle('show', on); }
   function syncSize() { if (active && sizeEl) sizeEl.value = Math.round((Math.log(clamp(active.s, 0.03, 18)) - SLO) / (SHI - SLO) * 1000); }
+  function syncRot() { if (active && rotEl) rotEl.value = (((Math.round(active.rot) % 360) + 360) % 360); }
   function setActive(p) {
     var prev = active; active = p;
     if (prev && prev !== p) applyFilter(prev);
     if (p) {
       p.z = ++zTop; p.el.style.zIndex = zTop; applyFilter(p);
-      if (editRow) editRow.classList.add('show');
+      showEdit(true);
       if (lockEl) { lockEl.classList.toggle('on', !!p.pinned); lockEl.setAttribute('aria-pressed', p.pinned ? 'true' : 'false'); }
-      syncSize();
-    } else if (editRow) editRow.classList.remove('show');
+      syncSize(); syncRot();
+    } else showEdit(false);
   }
   if (sizeEl) sizeEl.addEventListener('input', function () { if (active) resizeTo(active, Math.exp(SLO + (SHI - SLO) * (+sizeEl.value / 1000))); });
+  if (rotEl) rotEl.addEventListener('input', function () { if (active) { active.rot = +rotEl.value; place(active); } });
   if (lockEl) lockEl.addEventListener('click', function () {
     if (!active) return;
     pinPiece(active, !active.pinned);
