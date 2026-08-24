@@ -69,8 +69,10 @@ and `images/cutouts/`.
   anywhere inside it, even a transparent area** (a trackpad misses opaque-only hit-tests too easily).
   Resize via the **size slider** (0.03×–18×, log) — the dependable path on a trackpad; wheel also resizes
   (desktop, proportional + locks onto the started piece) and two-finger **pinch** on mobile. **rotate
-  slider** sets `p.rot` (0–360). **motion lock** = pin (survives motion, frozen); **remove** or drag onto
-  the top-centre **bin** deletes. The browser's own pinch-zoom / gesture
+  slider** sets `p.rot` (0–360). **duplicate** copies the piece (same cutout/size/rotation/colour, offset
+  a touch, then selected — each piece stores `p.cut`). **invert** (in the edit rows) flips just that piece's
+  colour via `p.inv` / `p.baseFilter`, separate from the page-level invert. **motion lock** = pin (survives
+  motion, frozen); **remove** or drag onto the top-centre **bin** deletes. The browser's own pinch-zoom / gesture
   nav is **blocked on this page** (a trackpad pinch would otherwise zoom the page / pop the tab overview
   — `ctrlKey` wheel + `gesturestart/change/end` preventDefault, and the canvas wheel always
   preventDefaults). Hit-testing is **alpha-accurate**. Primitives: `spawnPiece(z,opts)`, `pinPiece(p,on)`,

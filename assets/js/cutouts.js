@@ -77,6 +77,7 @@
   function spawnPiece(z, opts) {
     opts = opts || {};
     var c = opts.cutout || pick(POOL);
+    var inv = (opts.invert != null) ? opts.invert : c.invert;   // per-piece colour state
     var el = document.createElement('div');
     el.className = 'cutout';
     var img = document.createElement('img');
@@ -88,7 +89,7 @@
     })(img, c.full);
     // dark-ink pieces get inverted so they read light; a touch of contrast
     // firms them up. The blend mode does the rest.
-    var filt = c.invert ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
+    var filt = inv ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
     img.style.filter = filt;
     var s = opts.scale || scaleFor();
     el.style.width = (BASE * s) + 'px';
@@ -103,10 +104,12 @@
       vy: (Math.random() * 2 - 1),
       phase: Math.random() * Math.PI * 2,       // float sway offset
       spin: (Math.random() * 2 - 1) * 0.25,     // spin speed, deg/frame
-      rot: 0,
+      rot: opts.rot || 0,
       z: z,                                      // paint order; raised when pinned
       pinned: false,
-      baseFilter: filt
+      baseFilter: filt,
+      cut: c,                                    // which cutout — lets a piece be duplicated
+      inv: inv                                   // per-piece colour invert
     };
     place(p);
     stage.appendChild(el);
@@ -318,6 +321,8 @@
   var rotEl = document.getElementById('cutrot');
   var lockEl = document.getElementById('cutlock');
   var delEl = document.getElementById('cutdel');
+  var dupEl = document.getElementById('cutdup');
+  var pinvEl = document.getElementById('cutpinv');
   var SLO = Math.log(0.03), SHI = Math.log(18);
   function showEdit(on) { for (var i = 0; i < editRows.length; i++) editRows[i].classList.toggle('show', on); }
   function syncSize() { if (active && sizeEl) sizeEl.value = Math.round((Math.log(clamp(active.s, 0.03, 18)) - SLO) / (SHI - SLO) * 1000); }
@@ -329,6 +334,7 @@
       p.z = ++zTop; p.el.style.zIndex = zTop; applyFilter(p);
       showEdit(true);
       if (lockEl) { lockEl.classList.toggle('on', !!p.pinned); lockEl.setAttribute('aria-pressed', p.pinned ? 'true' : 'false'); }
+      if (pinvEl) { pinvEl.classList.toggle('on', !!p.inv); pinvEl.setAttribute('aria-pressed', p.inv ? 'true' : 'false'); }
       syncSize(); syncRot();
     } else showEdit(false);
   }
@@ -341,6 +347,19 @@
     lockEl.setAttribute('aria-pressed', active.pinned ? 'true' : 'false');
   });
   if (delEl) delEl.addEventListener('click', function () { if (active) { removePiece(active); setActive(null); } });
+  if (dupEl) dupEl.addEventListener('click', function () {
+    if (!active) return;   // copy the selected piece (same cutout, size, rotation, colour), offset a touch
+    var p = spawnPiece(pieces.length, { cutout: active.cut, x: active.x + 30, y: active.y + 30, scale: active.s, rot: active.rot, invert: active.inv });
+    setActive(p);
+  });
+  if (pinvEl) pinvEl.addEventListener('click', function () {
+    if (!active) return;   // invert just this piece's colour
+    active.inv = !active.inv;
+    active.baseFilter = active.inv ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
+    applyFilter(active);
+    pinvEl.classList.toggle('on', active.inv);
+    pinvEl.setAttribute('aria-pressed', active.inv ? 'true' : 'false');
+  });
 
   // block the browser's own pinch-zoom / gesture navigation on this page so a
   // trackpad pinch can't zoom the page or pop the tab overview
