@@ -72,46 +72,48 @@
     p.el.style.transform = t;
   }
 
+  function spawnPiece(z) {
+    var c = pick(POOL);
+    var el = document.createElement('div');
+    el.className = 'cutout';
+    var img = document.createElement('img');
+    img.decoding = 'async';
+    img.alt = '';
+    img.src = c.thumb;
+    (function (img, full) {                     // fall back to the original if no derivative
+      img.onerror = function () { img.onerror = null; img.src = full; };
+    })(img, c.full);
+    // dark-ink pieces get inverted so they read light; a touch of contrast
+    // firms them up. The blend mode does the rest.
+    var filt = c.invert ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
+    img.style.filter = filt;
+    var s = scaleFor();
+    el.style.width = (BASE * s) + 'px';
+    el.style.mixBlendMode = state.blend;
+    el.appendChild(img);
+    var p = {
+      el: el,
+      x: (Math.random() * 1.2 - 0.1) * innerWidth,
+      y: (Math.random() * 1.2 - 0.1) * innerHeight,
+      s: s,
+      vx: (Math.random() * 2 - 1),
+      vy: (Math.random() * 2 - 1),
+      phase: Math.random() * Math.PI * 2,       // float sway offset
+      spin: (Math.random() * 2 - 1) * 0.25,     // spin speed, deg/frame
+      rot: 0,
+      z: z,                                      // paint order; raised when pinned
+      pinned: false,
+      baseFilter: filt
+    };
+    place(p);
+    stage.appendChild(el);
+    pieces.push(p);
+    return p;
+  }
   function recompose() {
     stage.innerHTML = '';
     pieces = [];
-    for (var i = 0; i < state.count; i++) {
-      var c = pick(POOL);
-      var el = document.createElement('div');
-      el.className = 'cutout';
-      var img = document.createElement('img');
-      img.decoding = 'async';
-      img.alt = '';
-      img.src = c.thumb;
-      (function (img, full) {                 // fall back to the original if no derivative
-        img.onerror = function () { img.onerror = null; img.src = full; };
-      })(img, c.full);
-      // dark-ink pieces get inverted so they read light; a touch of contrast
-      // firms them up. The blend mode does the rest.
-      var filt = c.invert ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
-      img.style.filter = filt;
-      var s = scaleFor();
-      el.style.width = (BASE * s) + 'px';
-      el.style.mixBlendMode = state.blend;
-      el.appendChild(img);
-      var p = {
-        el: el,
-        x: (Math.random() * 1.2 - 0.1) * innerWidth,
-        y: (Math.random() * 1.2 - 0.1) * innerHeight,
-        s: s,
-        vx: (Math.random() * 2 - 1),
-        vy: (Math.random() * 2 - 1),
-        phase: Math.random() * Math.PI * 2,     // float sway offset
-        spin: (Math.random() * 2 - 1) * 0.25,   // spin speed, deg/frame
-        rot: 0,
-        z: i,                                    // paint order; raised when pinned
-        pinned: false,
-        baseFilter: filt
-      };
-      place(p);
-      stage.appendChild(el);
-      pieces.push(p);
-    }
+    for (var i = 0; i < state.count; i++) spawnPiece(i);
   }
 
   // motion loop.
@@ -197,6 +199,9 @@
     if (p.pinned) {
       p.z = ++zTop; p.el.style.zIndex = zTop;
       img.style.filter = p.baseFilter + ' drop-shadow(0 0 7px rgba(228,226,221,.6))';
+      // low-count "build a collage" mode: pinning one you like drops in a fresh
+      // candidate, so the composition grows piece by piece.
+      if (state.count < 5 && pieces.length < 40) spawnPiece(pieces.length);
     } else {
       img.style.filter = p.baseFilter;
     }
@@ -286,7 +291,7 @@
   build('cutmotion', MOTIONS, setMotion);
 
   document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
-  document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(3, state.count - 1); recompose(); syncButtons(); });
+  document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(1, state.count - 1); recompose(); syncButtons(); });
   document.getElementById('cutrecompose').addEventListener('click', recompose);
 
   var rz;

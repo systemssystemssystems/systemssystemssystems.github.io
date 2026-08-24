@@ -26,15 +26,17 @@ docs are in `README.md`; this file is operating instructions.
 
 Layout rule: HTML pages, `works.js`, `CNAME`, `.nojekyll`, and favicons stay at the root (Pages
 and browser conventions require the pages/favicons there; `works.js` is content the artist edits).
-All code lives under `assets/js/` and `assets/css/`. Generated files live under `images/thumbs/`.
+All code lives under `assets/js/` and `assets/css/`. Generated files live under `images/thumbs/`
+and `images/cutouts/`.
 
 - `works.js` (root) — the manifest; one `{ src, title, year }` per artwork, **newest first**. The
   visible numbering is derived (`WORKS.length - index`), so inserting at the top renumbers
   everything automatically. Titles are free text and get HTML-escaped by `esc()` at render time
-  (`"<3"` is a real title — keep the escaping).
+  (`"<3"` is a real title — keep the escaping). Optional `cutout:true` / `invert:true` flags mark a
+  work for the cutouts page and are **ignored** by the field and grid.
 - `assets/js/lightbox.js` — shared helpers (`esc`, `thumbFor`, `buildFigure`) + the lightbox
-  singleton. Loaded on both pages **after** `works.js` and `images/thumbs/index.js`, **before**
-  the page script. Both page scripts depend on it.
+  singleton. Loaded on the **field and grid** pages **after** `works.js` and `images/thumbs/index.js`,
+  **before** the page script. Both those page scripts depend on it (the cutouts page has no lightbox).
 - `assets/js/field.js` — the field. Initial placement is seeded (`mulberry32(20260713)`) so
   everyone's first paint matches; migrations after that use `Math.random`. **Density and sizing
   live in the `SIZES` table** (per-tier: phone ≤640, tablet ≤1024, desktop): sizes roll in vw,
@@ -52,9 +54,26 @@ All code lives under `assets/js/` and `assets/css/`. Generated files live under 
   (resize, font swap) or the wrap seam shows.
 - `assets/js/sound.js` — WebAudio drone, built lazily on first "sound on". Phones get a re-voiced
   harmonic recipe (see `mobileAudio`).
+- `assets/js/cutouts.js` — the cutouts compositor (`cutouts.html` only). Builds its pool from
+  `WORKS.filter(cutout)` **plus** `CUTOUTS_EXTRA`, samples `state.count` pieces at a wild scale
+  range, blends them (`state.blend`), and animates them (`state.motion`: still/drift/jagged/float/
+  spin). Tap-to-pin uses **alpha hit-testing** (samples each image's transparency at the tap point
+  so you grab the visible piece, not a big transparent bbox); pinning in low-count mode spawns a
+  fresh candidate. `save frame` redraws the composition to a canvas (`toDataURL`) so blend +
+  inversion + positions match; `invert` toggles a page-level `filter:invert(1)` with the controls
+  double-inverted back. Dev controls are intentionally still on the page while the look is decided.
+- `assets/js/cutouts-extra.js` — `CUTOUTS_EXTRA`, the manifest of **cutout-only** works, loaded
+  **only** by `cutouts.html`. Each `src` points straight at a committed derivative in
+  `images/cutouts/`. Kept out of `works.js` so it can't affect field/grid numbering.
 - `images/thumbs/` — generated. `index.js` maps `original filename → thumb filename`; an image
   missing from the map silently serves its original (that's the designed fallback, not a bug — but
   it means a forgotten `make-thumbs.sh` run costs megabytes, so check for unmapped images).
+- `images/cutouts/` — generated alpha-preserving derivatives for the cutouts page (JPEG thumbs
+  can't carry transparency, so cutouts need their own tier). `make-cutouts.sh` builds the ones for
+  `cutout`-flagged `works.js` entries; the `x**` files for `cutouts-extra.js` are committed directly
+  (their full-res source lives in the artist's archive, not the repo).
+- `assets/css/site.css` — the cutouts-page styles are scoped under `.cutoutbody` in a block near the
+  bottom (right above the mobile block), so they can't leak into the field or grid.
 - Mobile styling lives in the `@media (max-width:640px)` block at the **bottom** of
   `assets/css/site.css` (ordering matters); the JS phone breakpoint is the same 640px.
 
@@ -64,6 +83,14 @@ All code lives under `assets/js/` and `assets/css/`. Generated files live under 
 (macOS or Windows Git Bash) or `.\tools\make-thumbs.ps1` (Windows PowerShell), then verify. The
 `/add-work` skill and the `curator` agent encode this.
 
+**Add a cutout** (a transparent-background piece for the cutouts page) — two routes:
+- an existing gallery work: add `cutout:true` (and `invert:true` if it's dark ink) to its `works.js`
+  line, then run `./tools/make-cutouts.sh` to build its `images/cutouts/` derivative;
+- a cutout-only piece: drop a downscaled alpha PNG into `images/cutouts/` and add a line to
+  `assets/js/cutouts-extra.js`.
+Good candidates read as a clear shape with solid mass; faint low-alpha wash scans stay near-invisible
+however the blend is set. Dark ink needs `invert`.
+
 **Verify any change** (the `site-qa` agent encodes this): serve the repo root — use the `site`
 config in `.claude/launch.json` (`python3 -m http.server 4173`) — then on **both** pages check:
 zero console errors; no 404s in the network log (thumbs actually served, not originals); lightbox
@@ -71,7 +98,10 @@ opens full-res, arrows/Escape work, focus returns on close; grid drags, flicks, 
 seamlessly, Tab pans to tiles; field wheel-scroll is damped and speed-capped (scrollbar drag stays
 native); no vertical voids taller than ~1.2 viewports in the field; sound toggles on and off
 again; check 375 / 768 / 1280 / 1920px widths — piece sizes must respect the px clamps at all
-four; `prefers-reduced-motion` leaves a static, readable, natively-scrolling page.
+four; `prefers-reduced-motion` leaves a static, readable, natively-scrolling page. On **cutouts**:
+zero console errors, no 404s (derivatives served); reload draws a new composition; each control
+(blend / scale / motion / count / recompose / save frame / invert) works; tap-to-pin grabs a
+visible piece; nothing overlaps at 375px and the corner links clear the sound toggle + panel.
 
 **Check manifest ↔ disk** after any works.js or images/ change:
 every `src` exists (case-sensitive), no orphan files, no duplicate `src`, and every image ≥ ~200 KB

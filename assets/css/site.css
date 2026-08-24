@@ -457,14 +457,16 @@ body.canvasbody{
   background:linear-gradient(to bottom, rgba(8,8,10,.82), transparent); }
 .cutoutbody .cutscrim.b{ bottom:0; height:280px;
   background:linear-gradient(to top, rgba(8,8,10,.96), rgba(8,8,10,.72) 38%, rgba(8,8,10,.28) 66%, transparent); }
-.cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:440px; height:360px;
-  background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.94), rgba(8,8,10,.5) 46%, transparent 72%); }
+.cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:470px; height:400px;
+  background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.97), rgba(8,8,10,.64) 44%, transparent 74%); }
 
 /* control cluster — same lowercase, letterspaced voice as the marks */
 .cutoutbody #cutpanel{
   position:fixed; z-index:6; left:22px; bottom:44px;
   display:flex; flex-direction:column; gap:13px;
   font-size:11px; letter-spacing:.18em; text-transform:lowercase;
+  /* a soft dark halo so the controls hold up over a bright piece behind them */
+  text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 7px rgba(8,8,10,.7);
 }
 .cutoutbody .crow{ display:flex; align-items:baseline; gap:12px; }
 .cutoutbody .clab{ color:#45454a; width:58px; flex:none; letter-spacing:.2em; }
@@ -506,6 +508,7 @@ body.cutoutbody.page-inverted #cutpanel button:hover,
 body.cutoutbody.page-inverted #cutpanel button.on{ color:#101013; }
 body.cutoutbody.page-inverted #cutpanel .clab{ color:#8c8c90; }
 body.cutoutbody.page-inverted #cutpanel .cval{ color:#101013; }
+body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
 
 .cutoutbody .cuthint{
   position:fixed; z-index:5; bottom:16px; left:50%; transform:translateX(-50%);
