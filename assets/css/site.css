@@ -541,7 +541,7 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
   flex:none; width:100%; aspect-ratio:1/1;
   background:#141417; border:1px solid rgba(228,226,221,.09);
   display:flex; align-items:center; justify-content:center;
-  cursor:grab; touch-action:none;
+  cursor:grab; touch-action:pan-y;   /* vertical swipe scrolls the strip; horizontal drag pulls a cutout out */
   transition:border-color .2s ease, opacity .2s ease;
 }
 .cutoutbody .tray-item:hover{ border-color:rgba(228,226,221,.35); }
@@ -577,7 +577,6 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
   .cutoutbody .cuttray.open{ transform:translateX(0); }
   .cutoutbody .tray-handle{ height:120px; }
   .cutoutbody .tray-items{ width:116px; padding:46px 10px; }
-  .cutoutbody .tray-item{ cursor:pointer; touch-action:auto; }
 }
 
 .cutoutbody .cuthint{

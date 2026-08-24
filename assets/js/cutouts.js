@@ -47,7 +47,8 @@
   // phones get fewer, smaller pieces — a packed 20 at desktop scale is too
   // heavy on a narrow screen.
   var isMobile = innerWidth <= 640;
-  var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: isMobile ? 10 : 20 };
+  // starts low now that the page is a collage tool — build up from here (0..30)
+  var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: 5 };
   var BASE = isMobile ? 300 : 460; // px width at scale 1
   // jagged motion is livelier on desktop (more room + power) than on phones
   var JAG_SPEED = isMobile ? 0.9 : 1.8;
@@ -348,8 +349,9 @@
 
   function dropCutout(cutout, x, y) {
     var s = 0.9 + Math.random() * 0.5;
-    var p = spawnPiece(pieces.length, { cutout: cutout, x: x, y: y, scale: s });
-    pinPiece(p, true);                      // placed pieces stay put (frozen + front)
+    // left unpinned so the motion effects apply to it when motion is on; in
+    // still mode it simply stays where you dropped it (tap it to pin/lock).
+    spawnPiece(pieces.length, { cutout: cutout, x: x, y: y, scale: s });
   }
   function centreDrop(cutout) {
     dropCutout(cutout, innerWidth / 2 + (Math.random() * 90 - 45), innerHeight * 0.42 + (Math.random() * 90 - 45));
@@ -364,15 +366,7 @@
       im.style.filter = c.invert ? 'invert(1)' : 'none';
       (function (im, full) { im.onerror = function () { im.onerror = null; im.src = full; }; })(im, c.full);
       it.appendChild(im);
-      if (isMobile) {
-        // tap to add; the strip scrolls natively on swipe
-        it.addEventListener('click', function () {
-          centreDrop(c);
-          it.classList.add('added'); setTimeout(function () { it.classList.remove('added'); }, 220);
-        });
-      } else {
-        it.addEventListener('pointerdown', function (e) { startDrag(e, c, im); });
-      }
+      it.addEventListener('pointerdown', function (e) { startDrag(e, c, im, it); });
       trayItems.appendChild(it);
     });
     if (trayHandle) trayHandle.addEventListener('click', function () {
@@ -381,40 +375,54 @@
     });
   }
 
-  // pointer drag (desktop): ghost follows the cursor; drop on the canvas places
+  // Drag a cutout out of the tray onto the canvas — mouse or touch. On touch the
+  // tray still scrolls vertically (touch-action:pan-y): a mostly-horizontal drag
+  // pulls the cutout out, a vertical swipe scrolls the strip, a tap adds at centre.
   var drag = null;
-  function startDrag(e, cutout, srcImg) {
+  function startDrag(e, cutout, srcImg, itemEl) {
     if (e.button != null && e.button !== 0) return;
-    e.preventDefault();
-    if (tray) tray.classList.add('open');
-    var ghost = document.createElement('div');
-    ghost.className = 'drag-ghost';
-    var g = document.createElement('img'); g.src = srcImg.src; g.style.filter = srcImg.style.filter;
-    ghost.appendChild(g);
-    document.body.appendChild(ghost);
-    drag = { cutout: cutout, ghost: ghost, x0: e.clientX, y0: e.clientY, moved: false };
-    moveGhost(e.clientX, e.clientY);
+    if (e.pointerType === 'mouse') e.preventDefault();
+    drag = { cutout: cutout, src: srcImg, item: itemEl, type: e.pointerType,
+             x0: e.clientX, y0: e.clientY, active: false, scroll: false, ghost: null };
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragUp);
-    window.addEventListener('pointercancel', onDragUp);
+    window.addEventListener('pointercancel', onDragCancel);
   }
-  function moveGhost(x, y) { if (drag) { drag.ghost.style.left = x + 'px'; drag.ghost.style.top = y + 'px'; } }
+  function moveGhost(x, y) { if (drag && drag.ghost) { drag.ghost.style.left = x + 'px'; drag.ghost.style.top = y + 'px'; } }
   function onDragMove(e) {
-    if (!drag) return;
-    if (Math.abs(e.clientX - drag.x0) > 6 || Math.abs(e.clientY - drag.y0) > 6) { drag.moved = true; drag.ghost.classList.add('show'); }
+    if (!drag || drag.scroll) return;
+    var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+    if (!drag.active) {
+      if ((drag.type === 'mouse' || Math.abs(dx) >= Math.abs(dy)) && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+        drag.active = true;
+        if (tray) tray.classList.add('open');
+        var ghost = document.createElement('div'); ghost.className = 'drag-ghost';
+        var g = document.createElement('img'); g.src = drag.src.src; g.style.filter = drag.src.style.filter;
+        ghost.appendChild(g); document.body.appendChild(ghost);
+        drag.ghost = ghost; ghost.classList.add('show');
+      } else if (Math.abs(dy) > 10) { drag.scroll = true; return; }  // vertical → let the strip scroll
+      else return;
+    }
     moveGhost(e.clientX, e.clientY);
   }
   function onDragUp(e) {
     if (!drag) return;
-    var overTray = tray && inRect(e.clientX, e.clientY, tray.getBoundingClientRect());
-    if (drag.moved && !overTray) dropCutout(drag.cutout, e.clientX, e.clientY);
-    else if (!drag.moved) centreDrop(drag.cutout);   // a click, not a drag → add at centre
+    if (drag.active) {
+      var overTray = tray && inRect(e.clientX, e.clientY, tray.getBoundingClientRect());
+      if (!overTray) dropCutout(drag.cutout, e.clientX, e.clientY);
+    } else if (!drag.scroll) { centreDrop(drag.cutout); flash(drag.item); }  // a tap → add at centre
+    cleanupDrag();
+  }
+  function onDragCancel() { cleanupDrag(); }
+  function cleanupDrag() {
+    if (!drag) return;
     if (drag.ghost) drag.ghost.remove();
     window.removeEventListener('pointermove', onDragMove);
     window.removeEventListener('pointerup', onDragUp);
-    window.removeEventListener('pointercancel', onDragUp);
+    window.removeEventListener('pointercancel', onDragCancel);
     drag = null;
   }
+  function flash(el) { if (!el) return; el.classList.add('added'); setTimeout(function () { el.classList.remove('added'); }, 220); }
   function inRect(x, y, r) { return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }
 
   // ---- controls ----
@@ -449,7 +457,7 @@
   build('cutmotion', MOTIONS, setMotion);
 
   document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
-  document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(1, state.count - 1); recompose(); syncButtons(); });
+  document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(0, state.count - 1); recompose(); syncButtons(); });
   document.getElementById('cutrecompose').addEventListener('click', recompose);
 
   var rz;
