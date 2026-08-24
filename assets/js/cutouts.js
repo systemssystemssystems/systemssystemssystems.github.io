@@ -167,7 +167,7 @@
   // Cutouts are mostly transparent, so a bounding-box click would almost always
   // grab a big piece's empty area. We sample each image's alpha at the tap point
   // and pin the topmost piece that's actually opaque there.
-  var alphaCache = {}, zTop = 1000;
+  var alphaCache = {}, zTop = 1000, active = null;
   function alphaMap(img) {
     var key = img.currentSrc || img.src;
     if (alphaCache[key]) return alphaCache[key];
@@ -196,15 +196,16 @@
     }
     return null;
   }
+  function applyFilter(p) {                    // halos follow the shape's alpha, not a bbox
+    var f = p.baseFilter;
+    if (p.pinned) f += ' drop-shadow(0 0 7px rgba(228,226,221,.55))';    // locked
+    if (p === active) f += ' drop-shadow(0 0 6px rgba(255,255,255,.9))';  // selected
+    p.el.firstChild.style.filter = f;
+  }
   function pinPiece(p, on) {
     p.pinned = on;
-    var img = p.el.firstChild;
-    if (on) {
-      p.z = ++zTop; p.el.style.zIndex = zTop;
-      img.style.filter = p.baseFilter + ' drop-shadow(0 0 7px rgba(228,226,221,.6))';
-    } else {
-      img.style.filter = p.baseFilter;
-    }
+    if (on) { p.z = ++zTop; p.el.style.zIndex = zTop; }
+    applyFilter(p);
   }
   function togglePin(p) {
     pinPiece(p, !p.pinned);
@@ -240,10 +241,16 @@
     var ids = Object.keys(ptrs);
     if (ids.length === 1) {
       var p = hitPiece(e.clientX, e.clientY);
+      // if you press inside the already-selected piece (even a transparent bit),
+      // grab it anyway — makes moving the selected piece reliable on a trackpad
+      if (!p && active && inRect(e.clientX, e.clientY, active.el.getBoundingClientRect())) p = active;
       if (p) {
+        setActive(p);
         grab = { p: p, ox: e.clientX - p.x, oy: e.clientY - p.y, x0: e.clientX, y0: e.clientY, moved: false };
         try { stage.setPointerCapture(e.pointerId); } catch (err) {}
         e.preventDefault();
+      } else {
+        setActive(null);                       // pressed empty canvas → deselect
       }
     } else if (ids.length === 2 && grab && draggable(grab.p)) {
       pinch = { p: grab.p, d0: pdist(ptrs[ids[0]], ptrs[ids[1]]) || 1, s0: grab.p.s };
@@ -256,7 +263,7 @@
     ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
     if (pinch) {
       var ids = Object.keys(ptrs);
-      if (ids.length >= 2) resizeTo(pinch.p, pinch.s0 * (pdist(ptrs[ids[0]], ptrs[ids[1]]) / pinch.d0));
+      if (ids.length >= 2) { resizeTo(pinch.p, pinch.s0 * (pdist(ptrs[ids[0]], ptrs[ids[1]]) / pinch.d0)); if (active === pinch.p) syncSize(); }
       return;
     }
     if (!grab) return;
@@ -277,8 +284,9 @@
       return;
     }
     if (grab) {
-      if (!grab.moved) togglePin(grab.p);
-      else if (droppedOnBin) removePiece(grab.p);
+      // tap (no move) already selected on pointerdown; a move that ends on the
+      // bin removes the piece
+      if (grab.moved && droppedOnBin) { removePiece(grab.p); if (active === grab.p) setActive(null); }
       grab = null; if (bin) bin.classList.remove('show', 'over');
     }
   }
@@ -290,16 +298,52 @@
   // under the cursor shifts to a transparent spot and the wheel stops biting.
   var wheelTarget = null, wheelTimer = null;
   stage.addEventListener('wheel', function (e) {
+    e.preventDefault();   // always — stops a trackpad pinch zooming the page over the canvas
     var p = (wheelTarget && pieces.indexOf(wheelTarget) >= 0) ? wheelTarget : hitPiece(e.clientX, e.clientY);
     if (!p || !draggable(p)) return;
-    e.preventDefault();
     wheelTarget = p;
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(function () { wheelTarget = null; }, 260);
     // proportional to scroll amount: smooth on a trackpad, still reaches the
     // extremes (0.03x speck .. 18x fills-the-screen) with a good spin of the wheel
     resizeTo(p, p.s * Math.exp(-e.deltaY * 0.0015));
+    if (active === p) syncSize();
   }, { passive: false });
+
+  // ---- selection: a slider is the dependable resize on web (a trackpad pinch
+  // otherwise zooms the page, not the piece). Click a piece to select it; the
+  // 'size' row + lock + remove act on the selection. ----
+  var editRow = document.getElementById('cutedit');
+  var sizeEl = document.getElementById('cutsize');
+  var lockEl = document.getElementById('cutlock');
+  var delEl = document.getElementById('cutdel');
+  var SLO = Math.log(0.03), SHI = Math.log(18);
+  function syncSize() { if (active && sizeEl) sizeEl.value = Math.round((Math.log(clamp(active.s, 0.03, 18)) - SLO) / (SHI - SLO) * 1000); }
+  function setActive(p) {
+    var prev = active; active = p;
+    if (prev && prev !== p) applyFilter(prev);
+    if (p) {
+      p.z = ++zTop; p.el.style.zIndex = zTop; applyFilter(p);
+      if (editRow) editRow.classList.add('show');
+      if (lockEl) { lockEl.classList.toggle('on', !!p.pinned); lockEl.setAttribute('aria-pressed', p.pinned ? 'true' : 'false'); }
+      syncSize();
+    } else if (editRow) editRow.classList.remove('show');
+  }
+  if (sizeEl) sizeEl.addEventListener('input', function () { if (active) resizeTo(active, Math.exp(SLO + (SHI - SLO) * (+sizeEl.value / 1000))); });
+  if (lockEl) lockEl.addEventListener('click', function () {
+    if (!active) return;
+    pinPiece(active, !active.pinned);
+    lockEl.classList.toggle('on', active.pinned);
+    lockEl.setAttribute('aria-pressed', active.pinned ? 'true' : 'false');
+  });
+  if (delEl) delEl.addEventListener('click', function () { if (active) { removePiece(active); setActive(null); } });
+
+  // block the browser's own pinch-zoom / gesture navigation on this page so a
+  // trackpad pinch can't zoom the page or pop the tab overview
+  document.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+  });
 
   // ---- capture the current frame as a PNG (redrawn to canvas so the blend,
   // inversion and positions are reproduced exactly) ----

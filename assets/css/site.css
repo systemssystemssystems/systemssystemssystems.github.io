@@ -494,6 +494,24 @@ body.canvasbody{
 .cutoutbody .cinvert.on{ color:var(--hot); }
 .cutoutbody .cinvert::before{ content:"\25D0\A0"; }  /* half-filled circle */
 
+/* per-piece edit row — shown only when a cutout is selected */
+.cutoutbody .cedit{ display:none; align-items:center; gap:10px; }
+.cutoutbody .cedit.show{ display:flex; }
+.cutoutbody .csize{
+  -webkit-appearance:none; appearance:none; width:94px; height:2px;
+  background:rgba(228,226,221,.35); outline:none; cursor:pointer;
+}
+.cutoutbody .csize::-webkit-slider-thumb{ -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:var(--bone); cursor:pointer; }
+.cutoutbody .csize::-moz-range-thumb{ width:11px; height:11px; border:none; border-radius:50%; background:var(--bone); cursor:pointer; }
+.cutoutbody .clock.on{ color:var(--hot); }
+.cutoutbody .cdel{ color:var(--bone); }
+.cutoutbody .cdel:hover{ color:#e08582; }
+.cutoutbody .cdel::before{ content:"\2715\A0"; }   /* ✕ */
+/* keep the slider visible when the page is inverted (light ground) */
+body.cutoutbody.page-inverted .csize{ background:rgba(20,20,22,.45); }
+body.cutoutbody.page-inverted .csize::-webkit-slider-thumb{ background:#151517; }
+body.cutoutbody.page-inverted .csize::-moz-range-thumb{ background:#151517; }
+
 /* invert the whole page (a negative of the composition), but double-invert the
    controls + marks back to normal so they stay legible on the flipped ground */
 body.cutoutbody.page-inverted{ filter:invert(1); }
