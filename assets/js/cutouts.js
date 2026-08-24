@@ -386,15 +386,16 @@
     document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
   });
 
-  // ---- capture the current frame as a PNG (redrawn to canvas so the blend,
-  // inversion and positions are reproduced exactly) ----
+  // ---- capture the current frame as a PNG. Redrawn to a canvas so it matches
+  // what's actually on screen: same paint order, per-piece filter, blend and the
+  // page's negative look — but NOT the transient selection / lock halos (those are
+  // UI feedback, not part of the art), so we draw with each piece's baseFilter. ----
   var BLEND_MAP = { normal: 'source-over', screen: 'screen', lighten: 'lighten', difference: 'difference', exclusion: 'exclusion', multiply: 'multiply' };
-  function exportImage() {
-    var k = Math.max(1.3, Math.min(2, window.devicePixelRatio || 1));
+  function drawComposition(k, opts) {
     var cv = document.createElement('canvas');
     cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k);
     var ctx = cv.getContext('2d');
-    ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    if (opts.background) { ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, cv.width, cv.height); }  // the dark ground, else leave it transparent
     var order = pieces.slice().sort(function (a, b) { return a.z - b.z; }); // bottom-up
     for (var i = 0; i < order.length; i++) {
       var p = order[i], img = p.el.firstChild;
@@ -402,29 +403,58 @@
       var w = parseFloat(p.el.style.width) * k, h = w * (img.naturalHeight / img.naturalWidth);
       ctx.save();
       ctx.globalCompositeOperation = BLEND_MAP[state.blend] || 'source-over';
-      try { ctx.filter = img.style.filter || 'none'; } catch (e) {}
+      try { ctx.filter = p.baseFilter || 'none'; } catch (e) {}   // colour only — no halo
       ctx.translate(p.x * k, p.y * k);
       if (p.rot) ctx.rotate(p.rot * Math.PI / 180);
       ctx.drawImage(img, -w / 2, -h / 2, w, h);
       ctx.restore();
     }
-    // if the page is in its inverted (negative) look, match it in the export
-    if (document.body.classList.contains('page-inverted')) {
-      ctx.filter = 'none';
-      ctx.globalCompositeOperation = 'difference';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, cv.width, cv.height);
+    // negative look: invert RGB but keep alpha, so it matches CSS filter:invert(1)
+    // exactly and doesn't fill transparent areas (unlike the old difference-with-
+    // white trick, which broke a no-background export)
+    if (opts.negative) {
+      ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+      try {
+        var im = ctx.getImageData(0, 0, cv.width, cv.height), a = im.data;
+        for (var j = 0; j < a.length; j += 4) { a[j] = 255 - a[j]; a[j + 1] = 255 - a[j + 1]; a[j + 2] = 255 - a[j + 2]; }
+        ctx.putImageData(im, 0, 0);
+      } catch (e) {}
     }
+    return cv;
+  }
+  function exportImage(opts) {
+    var k = Math.max(1.3, Math.min(2, window.devicePixelRatio || 1));
+    var cv = drawComposition(k, opts || { background: true, negative: false });
     var url;
     try { url = cv.toDataURL('image/png'); } catch (e) { return; }  // synchronous + reliable
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'systemssystemssystems-cutouts-' + Date.now() + '.png';
+    a.download = 'systemssystemssystems-collage-' + Date.now() + '.png';
     a.target = '_blank';                   // iOS ignores download: opens the image to long-press-save
     document.body.appendChild(a); a.click(); a.remove();
   }
+
+  // ---- 'save' opens a small 'save & edit' menu in place of the controls, where
+  // you set how the frame is written before downloading it. (Draft.) ----
+  var expOpts = { background: true, negative: false };
+  function syncExport() {
+    document.querySelectorAll('#expbg button').forEach(function (b) { b.classList.toggle('on', (b.dataset.v === 'with') === expOpts.background); });
+    document.querySelectorAll('#explook button').forEach(function (b) { b.classList.toggle('on', (b.dataset.v === 'negative') === expOpts.negative); });
+  }
+  function setSaving(on) {
+    document.body.classList.toggle('saving', on);
+    if (on) {
+      setActive(null);   // drop any selection halo before saving
+      expOpts.negative = document.body.classList.contains('page-inverted');   // default to matching the screen
+      syncExport();
+    }
+  }
   var saveBtn = document.getElementById('cutsave');
-  if (saveBtn) saveBtn.addEventListener('click', exportImage);
+  if (saveBtn) saveBtn.addEventListener('click', function () { setSaving(true); });
+  var expBack = document.getElementById('expback');
+  if (expBack) expBack.addEventListener('click', function () { setSaving(false); });
+  var expDl = document.getElementById('expdownload');
+  if (expDl) expDl.addEventListener('click', function () { exportImage(expOpts); setSaving(false); });   // download, then back to the controls
 
   // ---- invert the whole page (negative look) ----
   var invertBtn = document.getElementById('cutinvert');
@@ -572,6 +602,11 @@
   build('cutblend', BLENDS, function (v) { state.blend = v; pieces.forEach(function (p) { p.el.style.mixBlendMode = v; }); syncButtons(); });
   build('cutscale', SCALES, function (v) { state.scaleMode = v; recompose(); syncButtons(); });
   build('cutmotion', MOTIONS, setMotion);
+
+  // save & edit menu: 'with' / 'without' the dark ground, and normal / negative look
+  build('expbg', ['with', 'without'], function (v) { expOpts.background = (v === 'with'); syncExport(); });
+  build('explook', ['normal', 'negative'], function (v) { expOpts.negative = (v === 'negative'); syncExport(); });
+  syncExport();
 
   document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
   document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(0, state.count - 1); recompose(); syncButtons(); });

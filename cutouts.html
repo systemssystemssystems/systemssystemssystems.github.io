@@ -72,8 +72,20 @@
   </div>
   <div class="crow cactions">
     <button type="button" class="crecompose" id="cutrecompose">recompose</button>
-    <button type="button" class="csave" id="cutsave">save frame</button>
+    <button type="button" class="csave" id="cutsave">save</button>
     <button type="button" class="cinvert" id="cutinvert" aria-pressed="false">invert</button>
+  </div>
+</nav>
+
+<!-- 'save & edit' menu: swaps in where the controls were, to set how the frame
+     is written out, then download it. (Draft.) -->
+<nav id="cutexport" aria-label="save and edit">
+  <div class="crow"><span class="clab">save</span><span class="cval2">&amp; edit</span></div>
+  <div class="crow"><span class="clab">background</span><div class="copts" id="expbg"></div></div>
+  <div class="crow"><span class="clab">look</span><div class="copts" id="explook"></div></div>
+  <div class="crow cactions">
+    <button type="button" class="csave" id="expdownload">download</button>
+    <button type="button" class="cback" id="expback">back</button>
   </div>
 </nav>
 
