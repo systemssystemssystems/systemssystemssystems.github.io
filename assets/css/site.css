@@ -467,7 +467,13 @@ body.canvasbody{
   font-size:11px; letter-spacing:.18em; text-transform:lowercase;
   /* a soft dark halo so the controls hold up over a bright piece behind them */
   text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 7px rgba(8,8,10,.7);
+  /* only the actual controls (below) catch pointers — every label word and gap
+     lets a press fall through to the canvas, so a piece under the panel is still
+     grabbable, especially on phones where the panel sits over the composition */
+  pointer-events:none;
 }
+.cutoutbody #cutpanel button,
+.cutoutbody #cutpanel input{ pointer-events:auto; }
 .cutoutbody .crow{ display:flex; align-items:baseline; gap:12px; }
 .cutoutbody .clab{ color:#45454a; width:58px; flex:none; letter-spacing:.2em; }
 .cutoutbody .copts{ display:flex; gap:12px; flex-wrap:wrap; }
@@ -521,7 +527,8 @@ body.cutoutbody.page-inverted #cutpanel,
 body.cutoutbody.page-inverted .mark,
 body.cutoutbody.page-inverted .cuttray,
 body.cutoutbody.page-inverted .cutbin,
-body.cutoutbody.page-inverted .clearbtn{ filter:invert(1); }
+body.cutoutbody.page-inverted .clearbtn,
+body.cutoutbody.page-inverted .panelbtn{ filter:invert(1); }
 /* the double-invert renders controls in their normal (dark-ground) palette, but
    they now sit on a light ground — recolour them dark so they stay legible */
 body.cutoutbody.page-inverted .mark,
@@ -578,11 +585,17 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
   transition:color .25s ease;
 }
 .cutoutbody .clearbtn:hover, .cutoutbody .clearbtn.on{ color:var(--bone); }
-/* clear mode: hide the chrome, keep the composition + the toggle */
+
+/* controls toggle: phones only (see the mobile block). On desktop the panel is
+   always open, so the toggle is hidden. */
+.cutoutbody .panelbtn{ display:none; }
+
+/* clear mode: hide the chrome, keep the composition + the clear toggle */
 body.cutoutbody.clear .mark,
 body.cutoutbody.clear #cutpanel,
 body.cutoutbody.clear .cuttray,
-body.cutoutbody.clear .cutbin{ display:none; }
+body.cutoutbody.clear .cutbin,
+body.cutoutbody.clear .panelbtn{ display:none; }
 
 /* the bin: fades in while dragging a piece; drop a piece on it to remove it */
 .cutoutbody .cutbin{
@@ -627,4 +640,25 @@ body.cutoutbody.clear .cutbin{ display:none; }
 @media (max-width:640px){
   .cutoutbody #cutpanel{ bottom:38px; gap:11px; }
   .cutoutbody .cuthint{ font-size:9px; letter-spacing:.18em; }
+
+  /* the top-left 'systems systems systems' mark is wide on a phone and ran under
+     the centred clear toggle — tuck clear into the top-right, below '← field' */
+  .cutoutbody .clearbtn{ top:42px; left:auto; right:16px; transform:none; }
+
+  /* collapse the dev control rows behind a 'controls' toggle so the page opens
+     clean and stops eating the bottom third of the screen. The per-piece edit
+     rows (.cedit) keep their own show-on-select logic, so tapping a piece still
+     brings up size / rotate / duplicate / lock / remove immediately. */
+  .cutoutbody #cutpanel .crow:not(.cedit){ display:none; }
+  body.cutoutbody.panel-open #cutpanel .crow:not(.cedit){ display:flex; }
+
+  .cutoutbody .panelbtn{
+    display:block; position:fixed; z-index:41;
+    left:22px; bottom:calc(12px + env(safe-area-inset-bottom));
+    font-family:inherit; font-size:11px; letter-spacing:.22em; text-transform:lowercase;
+    color:#4a4a49; background:none; border:none; padding:4px 6px; cursor:pointer;
+    text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 8px rgba(8,8,10,.8);
+    transition:color .25s ease;
+  }
+  .cutoutbody .panelbtn:hover, .cutoutbody .panelbtn.on{ color:var(--bone); }
 }

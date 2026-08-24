@@ -243,13 +243,19 @@
     ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
     var ids = Object.keys(ptrs);
     if (ids.length === 1) {
-      var p = hitPiece(e.clientX, e.clientY);
-      // if you press inside the already-selected piece (even a transparent bit),
-      // grab it anyway — makes moving the selected piece reliable on a trackpad
-      if (!p && active && inRect(e.clientX, e.clientY, active.el.getBoundingClientRect())) p = active;
+      var p = hitPiece(e.clientX, e.clientY);   // topmost piece actually opaque here
+      // A press on a *transparent* part of the already-selected piece still grabs
+      // it, so it drags reliably from anywhere (a trackpad misses opaque-only
+      // hit-tests). But that must not swallow taps meant to switch selection: an
+      // opaque tap on any other piece selects it (hitPiece already found it), and a
+      // tap here that never becomes a drag deselects (handled in endPointer).
+      var fromTransparent = false;
+      if (!p && active && inRect(e.clientX, e.clientY, active.el.getBoundingClientRect())) {
+        p = active; fromTransparent = true;
+      }
       if (p) {
-        setActive(p);
-        grab = { p: p, ox: e.clientX - p.x, oy: e.clientY - p.y, x0: e.clientX, y0: e.clientY, moved: false };
+        if (!fromTransparent) setActive(p);     // opaque hit → select that piece
+        grab = { p: p, ox: e.clientX - p.x, oy: e.clientY - p.y, x0: e.clientX, y0: e.clientY, moved: false, fromTransparent: fromTransparent };
         try { stage.setPointerCapture(e.pointerId); } catch (err) {}
         e.preventDefault();
       } else {
@@ -288,8 +294,11 @@
     }
     if (grab) {
       // tap (no move) already selected on pointerdown; a move that ends on the
-      // bin removes the piece
+      // bin removes the piece; a tap on a transparent bit of the selected piece
+      // (never a drag) deselects, so you can clear a selection without hunting for
+      // truly-empty canvas outside a big piece's bounding box
       if (grab.moved && droppedOnBin) { removePiece(grab.p); if (active === grab.p) setActive(null); }
+      else if (!grab.moved && grab.fromTransparent) setActive(null);
       grab = null; if (bin) bin.classList.remove('show', 'over');
     }
   }
@@ -414,6 +423,18 @@
     var on = document.body.classList.toggle('page-inverted');
     invertBtn.classList.toggle('on', on);
     invertBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  // controls toggle (phones only, hidden on desktop by CSS): the dev rows
+  // (blend / scale / motion / count / actions) collapse behind this so a phone
+  // opens clean. The per-piece edit rows still appear on their own when a piece
+  // is selected, so editing stays one tap away regardless of this toggle.
+  var ctrlsBtn = document.getElementById('cutctrls');
+  if (ctrlsBtn) ctrlsBtn.addEventListener('click', function () {
+    var on = document.body.classList.toggle('panel-open');
+    ctrlsBtn.classList.toggle('on', on);
+    ctrlsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    ctrlsBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
   });
 
   // clear view: hide all the chrome (marks, panel, tray, bin) for a clean look;
