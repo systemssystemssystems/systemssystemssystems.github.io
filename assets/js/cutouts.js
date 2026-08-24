@@ -416,6 +416,16 @@
     invertBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 
+  // clear view: hide all the chrome (marks, panel, tray, bin) for a clean look;
+  // the little toggle itself stays so you can bring it back
+  var clearBtn = document.getElementById('cutclear');
+  if (clearBtn) clearBtn.addEventListener('click', function () {
+    var on = document.body.classList.toggle('clear');
+    clearBtn.classList.toggle('on', on);
+    clearBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on) setActive(null);   // drop the selection halo too
+  });
+
   // ---- cutout palette (right-edge tray): drag a specific cutout onto the
   // canvas to place it, or (mobile) tap one to drop it in. Placed pieces land
   // pinned so they stay where you put them. ----

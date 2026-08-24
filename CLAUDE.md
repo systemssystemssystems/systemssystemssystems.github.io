@@ -60,7 +60,9 @@ and `images/cutouts/`.
   motion (still/drift/jagged/float/spin), count (**default 5, range 0–30**), recompose, `save frame`
   (redraws to a canvas via `toDataURL` so blend + inversion + positions match — inverted look too),
   `invert` (page-level `filter:invert(1)`, with the controls/tray/bin double-inverted back + recoloured
-  so they stay legible on the flipped ground). Right-edge **tray** lists every cutout: drag one onto
+  so they stay legible on the flipped ground). A small top-centre **clear** toggle (`body.clear`) hides
+  all chrome (marks/panel/tray/bin) for a clean view; the toggle stays so you can come back. Right-edge
+  **tray** lists every cutout: drag one onto
   the canvas (mouse or touch — `touch-action:pan-y`, so a vertical swipe scrolls the strip and a
   horizontal pull drags a cutout out) or tap to add at centre. Placed pieces are **unpinned** so the
   motion applies to them. Editing (active when a piece isn't being animated — motion `still`, or the

@@ -520,7 +520,8 @@ body.cutoutbody.page-inverted{ filter:invert(1); }
 body.cutoutbody.page-inverted #cutpanel,
 body.cutoutbody.page-inverted .mark,
 body.cutoutbody.page-inverted .cuttray,
-body.cutoutbody.page-inverted .cutbin{ filter:invert(1); }
+body.cutoutbody.page-inverted .cutbin,
+body.cutoutbody.page-inverted .clearbtn{ filter:invert(1); }
 /* the double-invert renders controls in their normal (dark-ground) palette, but
    they now sit on a light ground — recolour them dark so they stay legible */
 body.cutoutbody.page-inverted .mark,
@@ -567,6 +568,21 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
 .cutoutbody .tray-item:hover{ border-color:rgba(228,226,221,.35); }
 .cutoutbody .tray-item.added{ opacity:.35; }
 .cutoutbody .tray-item img{ max-width:84%; max-height:84%; object-fit:contain; pointer-events:none; }
+
+/* clear-view toggle: small, top-centre, always visible (even in clear mode) */
+.cutoutbody .clearbtn{
+  position:fixed; z-index:41; top:13px; left:50%; transform:translateX(-50%);
+  font-family:inherit; font-size:11px; letter-spacing:.22em; text-transform:lowercase;
+  color:#4a4a49; background:none; border:none; padding:4px 6px; cursor:pointer;
+  text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 8px rgba(8,8,10,.8);
+  transition:color .25s ease;
+}
+.cutoutbody .clearbtn:hover, .cutoutbody .clearbtn.on{ color:var(--bone); }
+/* clear mode: hide the chrome, keep the composition + the toggle */
+body.cutoutbody.clear .mark,
+body.cutoutbody.clear #cutpanel,
+body.cutoutbody.clear .cuttray,
+body.cutoutbody.clear .cutbin{ display:none; }
 
 /* the bin: fades in while dragging a piece; drop a piece on it to remove it */
 .cutoutbody .cutbin{
