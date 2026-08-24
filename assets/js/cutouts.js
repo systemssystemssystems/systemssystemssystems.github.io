@@ -118,6 +118,7 @@
     return p;
   }
   function recompose() {
+    setActive(null);
     stage.innerHTML = '';
     pieces = [];
     for (var i = 0; i < state.count; i++) spawnPiece(i);
@@ -489,7 +490,7 @@
 
   // ---- cutout palette (right-edge tray): drag a specific cutout onto the
   // canvas to place it, or (mobile) tap one to drop it in. Placed pieces land
-  // pinned so they stay where you put them. ----
+  // unpinned so motion applies to them (tap to pin/lock in place). ----
   var tray = document.getElementById('cuttray');
   var trayItems = document.getElementById('trayItems');
   var trayHandle = document.getElementById('trayHandle');
@@ -612,10 +613,14 @@
   document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(0, state.count - 1); recompose(); syncButtons(); });
   document.getElementById('cutrecompose').addEventListener('click', recompose);
 
-  var rz;
+  var rz, lastW = innerWidth;
   addEventListener('resize', function () {
     clearTimeout(rz);
-    rz = setTimeout(function () { if (state.motion !== 'drift') recompose(); }, 200);
+    rz = setTimeout(function () {
+      if (innerWidth === lastW) return;   // height-only change — phone URL bar
+      lastW = innerWidth;
+      if (state.motion !== 'drift') recompose();
+    }, 200);
   });
 
   if (reduce) state.motion = 'still';

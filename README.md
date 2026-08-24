@@ -46,9 +46,10 @@ Motion, static, and migration all stand down when the visitor has `prefers-reduc
 | `assets/js/grid.js` | the grid: the 3×3 wrap trick, drag/flick/wheel camera, keyboard pan |
 | `assets/js/cutouts.js` | the cutouts compositor: sampling, blend/scale/motion, pin, PNG export, page invert |
 | `assets/js/cutouts-extra.js` | manifest of cutout-only works — loaded only by the cutouts page (see below) |
-| `assets/js/scroll.js` | the weighted scroll: damped, speed-capped wheel/touch on the field |
+| `assets/js/scroll.js` | the weighted scroll: damped, speed-capped wheel/touch — tried, not currently loaded by any page (native scroll won) |
 | `assets/js/lightbox.js` | shared by field + grid: the lightbox, HTML-escaping, thumb resolution |
 | `assets/js/sound.js` | the hum, synthesized live with WebAudio |
+| `assets/js/transmissions.js` | touch fallback for the "other transmissions" reveal on the field page |
 | `assets/css/site.css` | all styling; palette variables at the top, then the cutouts + mobile blocks at the bottom |
 | `images/` | **the originals. these are the artworks — never resized, recompressed, or renamed.** |
 | `images/thumbs/` | generated inline derivatives + `index.js` manifest (see below) |

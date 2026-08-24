@@ -30,8 +30,10 @@ max=1200
 out="images/cutouts"
 mkdir -p "$out"
 
-# pull the cutout filenames out of works.js (lines flagged cutout:true)
-cutouts=$(grep 'cutout:true' works.js | sed -n 's/.*src:"images\/\([^"]*\)".*/\1/p')
+# pull the cutout filenames out of works.js (lines flagged cutout:true).
+# `grep` exits 1 when nothing matches, which set -e would treat as fatal —
+# guard it so an empty result reaches the "nothing to do" check below instead.
+cutouts=$(grep 'cutout:true' works.js | sed -n 's/.*src:"images\/\([^"]*\)".*/\1/p' || true)
 
 if [ -z "$cutouts" ]; then
   echo "no works flagged cutout:true in works.js — nothing to do"

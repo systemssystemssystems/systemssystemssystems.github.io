@@ -321,7 +321,8 @@ button.mark:hover{ color:var(--hot); }
   transition:opacity .3s ease, transform .3s ease, visibility 0s linear .3s;
 }
 .transmissions:hover .transmissions-links,
-.transmissions:focus-within .transmissions-links{
+.transmissions:focus-within .transmissions-links,
+.transmissions.open .transmissions-links{
   opacity:1; visibility:visible; pointer-events:auto;
   transform:translateX(-50%) translateY(0);
   transition:opacity .3s ease, transform .3s ease, visibility 0s;

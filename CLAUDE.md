@@ -45,15 +45,18 @@ and `images/cutouts/`.
   the blank-void bug). Real width changes re-tier and re-place (debounced, height-only resizes
   ignored — that's a phone URL bar).
 - `assets/js/scroll.js` — the weighted scroll (field page only): wheel/touch damped by `GAIN`s and
-  speed-capped by `MAXV`, eased by `EASE`. Keyboard, scrollbar, and pinch-zoom stay native;
-  reduced-motion disables the module entirely. Loaded after lightbox.js (it checks
-  `Lightbox.isOpen()`).
+  speed-capped by `MAXV`, eased by `EASE`. **Not loaded by any page** — tried, then reverted in
+  favor of native scroll (see Design history below); kept in the tree in case it's revisited, but
+  currently dead code.
 - `assets/js/grid.js` — the infinite sheet: a 3×3 patchwork of identical blocks, camera wraps by
   one block period (`PW`/`PH`) invisibly. Only the center block's tiles are tabbable; focusing one
   pans the camera to it (`revealTile`). `layout()` must re-run whenever block height could change
   (resize, font swap) or the wrap seam shows.
 - `assets/js/sound.js` — WebAudio drone, built lazily on first "sound on". Phones get a re-voiced
   harmonic recipe (see `mobileAudio`).
+- `assets/js/transmissions.js` — field page only. Click-to-toggle fallback for the "other
+  transmissions" reveal at the bottom of the field; CSS handles hover/focus-within, this covers
+  touch browsers that don't reliably hover or focus a tapped `<button>`.
 - `assets/js/cutouts.js` — the cutouts compositor / collage tool (`cutouts.html` only). Pool =
   `WORKS.filter(cutout)` **plus** `CUTOUTS_EXTRA`. Controls (bottom-left panel): blend (**`normal`
   default** — screen/difference wash the halftone cutouts out, normal layers them), scale range,
