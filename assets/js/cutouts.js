@@ -221,7 +221,7 @@
   var bin = document.getElementById('cutbin');
   function draggable(p) { return state.motion === 'still' || p.pinned; }
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-  function resizeTo(p, s) { p.s = clamp(s, 0.12, 6); p.el.style.width = (BASE * p.s) + 'px'; place(p); }
+  function resizeTo(p, s) { p.s = clamp(s, 0.03, 18); p.el.style.width = (BASE * p.s) + 'px'; place(p); }
   function removePiece(p) {
     var i = pieces.indexOf(p); if (i >= 0) pieces.splice(i, 1);
     if (p.el && p.el.parentNode) p.el.parentNode.removeChild(p.el);
@@ -285,11 +285,20 @@
   stage.addEventListener('pointerup', endPointer);
   stage.addEventListener('pointercancel', endPointer);
 
-  stage.addEventListener('wheel', function (e) {   // desktop resize
-    var p = hitPiece(e.clientX, e.clientY);
+  // desktop resize. Lock onto the piece you started on and keep resizing it
+  // during a continuous scroll — otherwise, as the piece grows, the content
+  // under the cursor shifts to a transparent spot and the wheel stops biting.
+  var wheelTarget = null, wheelTimer = null;
+  stage.addEventListener('wheel', function (e) {
+    var p = (wheelTarget && pieces.indexOf(wheelTarget) >= 0) ? wheelTarget : hitPiece(e.clientX, e.clientY);
     if (!p || !draggable(p)) return;
     e.preventDefault();
-    resizeTo(p, p.s * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+    wheelTarget = p;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(function () { wheelTarget = null; }, 260);
+    // proportional to scroll amount: smooth on a trackpad, still reaches the
+    // extremes (0.03x speck .. 18x fills-the-screen) with a good spin of the wheel
+    resizeTo(p, p.s * Math.exp(-e.deltaY * 0.0015));
   }, { passive: false });
 
   // ---- capture the current frame as a PNG (redrawn to canvas so the blend,
