@@ -442,7 +442,15 @@ body.canvasbody{
    Everything here is scoped under .cutoutbody so it can't touch the
    field or grid pages, and the whole page deletes cleanly.
    ================================================================ */
-.cutoutbody{ position:fixed; inset:0; width:100%; height:100%; overflow:hidden; }
+.cutoutbody{
+  position:fixed; inset:0; width:100%; height:100%; overflow:hidden;
+  /* shared control halo — a dense dark ring so every control reads over a bright,
+     busy cutout without needing a solid box behind it (keeps the floating-text
+     look). Tuned in one place; used by the panel, marks, toggles and tray. */
+  --halo: 0 0 2px rgba(8,8,10,.98), 0 0 4px rgba(8,8,10,.95),
+          0 1px 3px rgba(8,8,10,.98), 0 0 9px rgba(8,8,10,.82),
+          0 0 16px rgba(8,8,10,.6);
+}
 
 .cutoutbody .cutstage{ position:fixed; inset:0; z-index:1; overflow:hidden; touch-action:none; }
 .cutoutbody .cutout{
@@ -451,22 +459,26 @@ body.canvasbody{
 }
 .cutoutbody .cutout img{ display:block; width:100%; height:auto; }
 
+/* the corner marks share the control halo on this page (scoped here so the
+   field/grid marks keep their own lighter treatment) */
+.cutoutbody .mark{ text-shadow:var(--halo); }
+
 /* legibility scrims (between the stage and the marks) */
 .cutoutbody .cutscrim{ position:fixed; left:0; right:0; z-index:4; pointer-events:none; }
-.cutoutbody .cutscrim.t{ top:0; height:72px;
-  background:linear-gradient(to bottom, rgba(8,8,10,.82), transparent); }
-.cutoutbody .cutscrim.b{ bottom:0; height:280px;
-  background:linear-gradient(to top, rgba(8,8,10,.96), rgba(8,8,10,.72) 38%, rgba(8,8,10,.28) 66%, transparent); }
-.cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:470px; height:400px;
-  background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.97), rgba(8,8,10,.64) 44%, transparent 74%); }
+.cutoutbody .cutscrim.t{ top:0; height:90px;
+  background:linear-gradient(to bottom, rgba(8,8,10,.9), rgba(8,8,10,.5) 55%, transparent); }
+.cutoutbody .cutscrim.b{ bottom:0; height:300px;
+  background:linear-gradient(to top, rgba(8,8,10,.97), rgba(8,8,10,.78) 38%, rgba(8,8,10,.32) 66%, transparent); }
+.cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:500px; height:430px;
+  background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.98), rgba(8,8,10,.7) 46%, transparent 76%); }
 
 /* control cluster — same lowercase, letterspaced voice as the marks */
 .cutoutbody #cutpanel{
   position:fixed; z-index:6; left:22px; bottom:44px;
   display:flex; flex-direction:column; gap:13px;
   font-size:11px; letter-spacing:.18em; text-transform:lowercase;
-  /* a soft dark halo so the controls hold up over a bright piece behind them */
-  text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 7px rgba(8,8,10,.7);
+  /* a dense dark halo so the controls hold up over a bright piece behind them */
+  text-shadow:var(--halo);
   /* only the actual controls (below) catch pointers — every label word and gap
      lets a press fall through to the canvas, so a piece under the panel is still
      grabbable, especially on phones where the panel sits over the composition */
@@ -539,6 +551,10 @@ body.cutoutbody.page-inverted #cutpanel button.on{ color:#101013; }
 body.cutoutbody.page-inverted #cutpanel .clab{ color:#8c8c90; }
 body.cutoutbody.page-inverted #cutpanel .cval{ color:#101013; }
 body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
+/* the halo would double-invert to a light glow on the flipped ground — drop it */
+body.cutoutbody.page-inverted .clearbtn,
+body.cutoutbody.page-inverted .panelbtn,
+body.cutoutbody.page-inverted .tray-handle{ text-shadow:none; }
 
 /* ---- cutout palette (right-edge tray): drag/tap a cutout onto the canvas ---- */
 .cutoutbody .cuttray{
@@ -552,9 +568,10 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
 .cutoutbody .tray-handle{
   align-self:center; flex:none; width:24px; height:150px; padding:0;
   writing-mode:vertical-rl; text-orientation:mixed;
-  background:rgba(8,8,10,.72); color:var(--dim);
+  background:rgba(8,8,10,.84); color:var(--dim);
   font-family:inherit; font-size:11px; letter-spacing:.24em; text-transform:lowercase;
-  border:none; border-left:1px solid rgba(228,226,221,.14); cursor:pointer;
+  border:none; border-left:1px solid rgba(228,226,221,.2); cursor:pointer;
+  text-shadow:var(--halo);
   transition:color .25s ease;
 }
 .cutoutbody .tray-handle:hover{ color:var(--bone); }
@@ -581,7 +598,7 @@ body.cutoutbody.page-inverted #cutpanel{ text-shadow:none; }
   position:fixed; z-index:41; top:13px; left:50%; transform:translateX(-50%);
   font-family:inherit; font-size:11px; letter-spacing:.22em; text-transform:lowercase;
   color:#4a4a49; background:none; border:none; padding:4px 6px; cursor:pointer;
-  text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 8px rgba(8,8,10,.8);
+  text-shadow:var(--halo);
   transition:color .25s ease;
 }
 .cutoutbody .clearbtn:hover, .cutoutbody .clearbtn.on{ color:var(--bone); }
@@ -657,7 +674,7 @@ body.cutoutbody.clear .panelbtn{ display:none; }
     left:22px; bottom:calc(12px + env(safe-area-inset-bottom));
     font-family:inherit; font-size:11px; letter-spacing:.22em; text-transform:lowercase;
     color:#4a4a49; background:none; border:none; padding:4px 6px; cursor:pointer;
-    text-shadow:0 1px 2px rgba(8,8,10,.9), 0 0 8px rgba(8,8,10,.8);
+    text-shadow:var(--halo);
     transition:color .25s ease;
   }
   .cutoutbody .panelbtn:hover, .cutoutbody .panelbtn.on{ color:var(--bone); }
