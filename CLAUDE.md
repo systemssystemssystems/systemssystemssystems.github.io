@@ -54,14 +54,22 @@ and `images/cutouts/`.
   (resize, font swap) or the wrap seam shows.
 - `assets/js/sound.js` — WebAudio drone, built lazily on first "sound on". Phones get a re-voiced
   harmonic recipe (see `mobileAudio`).
-- `assets/js/cutouts.js` — the cutouts compositor (`cutouts.html` only). Builds its pool from
-  `WORKS.filter(cutout)` **plus** `CUTOUTS_EXTRA`, samples `state.count` pieces at a wild scale
-  range, blends them (`state.blend`), and animates them (`state.motion`: still/drift/jagged/float/
-  spin). Tap-to-pin uses **alpha hit-testing** (samples each image's transparency at the tap point
-  so you grab the visible piece, not a big transparent bbox); pinning in low-count mode spawns a
-  fresh candidate. `save frame` redraws the composition to a canvas (`toDataURL`) so blend +
-  inversion + positions match; `invert` toggles a page-level `filter:invert(1)` with the controls
-  double-inverted back. Dev controls are intentionally still on the page while the look is decided.
+- `assets/js/cutouts.js` — the cutouts compositor / collage tool (`cutouts.html` only). Pool =
+  `WORKS.filter(cutout)` **plus** `CUTOUTS_EXTRA`. Controls (bottom-left panel): blend (**`normal`
+  default** — screen/difference wash the halftone cutouts out, normal layers them), scale range,
+  motion (still/drift/jagged/float/spin), count (**default 5, range 0–30**), recompose, `save frame`
+  (redraws to a canvas via `toDataURL` so blend + inversion + positions match — inverted look too),
+  `invert` (page-level `filter:invert(1)`, with the controls/tray/bin double-inverted back + recoloured
+  so they stay legible on the flipped ground). Right-edge **tray** lists every cutout: drag one onto
+  the canvas (mouse or touch — `touch-action:pan-y`, so a vertical swipe scrolls the strip and a
+  horizontal pull drags a cutout out) or tap to add at centre. Placed pieces are **unpinned** so the
+  motion applies to them. Direct manipulation, active when a piece isn't being animated (motion
+  `still`, or the piece is pinned): tap = pin/unpin (front + halo), drag = move, wheel/pinch = resize
+  (**0.03×–18×**; wheel is proportional to scroll and locks onto the piece you started on), drag onto
+  the top-centre **bin** = remove. All pointer hit-testing is **alpha-accurate** (samples each image's
+  transparency so you grab the visible piece, not a transparent bbox). `spawnPiece(z, opts)` /
+  `pinPiece(p,on)` are the reusable primitives. Dev controls are intentionally still on the page while
+  the look is decided.
 - `assets/js/cutouts-extra.js` — `CUTOUTS_EXTRA`, the manifest of **cutout-only** works, loaded
   **only** by `cutouts.html`. Each `src` points straight at a committed derivative in
   `images/cutouts/`. Kept out of `works.js` so it can't affect field/grid numbering.
@@ -179,3 +187,23 @@ into the other (e.g. the grid intentionally has no hum or migrations — it's th
   `1.2.png`). They are what they are; the manifest matches them byte-for-byte (hard rule 3).
 - The artist is a self-taught beginner who learned by building this. Explain changes in plain
   language, one concept at a time, and prefer small reviewable steps over sweeping refactors.
+
+### Cutouts page — where we are (Aug 2026) & open threads
+The cutouts page grew from a concept into a working collage tool over several sessions (all shipped;
+see git log). Everything is in the repo — no separate handoff doc is needed; a fresh session should
+read this file + skim `assets/js/cutouts.js`. Settled decisions and things still open:
+- **Blend:** `normal` won as the default because the cutouts are mostly halftone/line art — `screen`
+  and `difference` average or cancel them into faint grey. Don't "fix" the default back to screen.
+- **The dev control panel is still visible on the live page** on purpose (the artist is deciding the
+  feel). Once settled, the intent is to strip the panel and hard-code the chosen blend/scale/motion.
+- **Motion vs placed pieces:** placed pieces are left unpinned so motion applies to them. Consequence
+  the artist knows: arranging in `still` then switching motion on makes un-pinned pieces drift off —
+  they pin (tap) the keepers first. Open question they were mulling: whether switching to a motion
+  mode should leave already-placed pieces put unless explicitly unpinned. Not decided.
+- **`spin`** breaks the site's "everything sits square" rule (deliberately kept on the field). It's
+  offered on this page as an experiment; the artist may cut it.
+- Possible next steps discussed, not built: auto-pin on edit; per-piece blend; undo; a seed/permalink
+  or richer export; a `docs/cutouts.jpg` screenshot for the README (field/grid have thumbnails, cutouts
+  doesn't yet). The artist drives; don't build these unprompted.
+- The artist likes the **unpolished / overlapping / messy** aesthetic — don't over-polish or chase
+  "clean". They've explicitly said not to fuss brightness/dimness.
