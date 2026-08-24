@@ -388,15 +388,73 @@
   });
 
   // ---- capture the current frame as a PNG. Redrawn to a canvas so it matches
-  // what's actually on screen: same paint order, per-piece filter, blend and the
-  // page's negative look — but NOT the transient selection / lock halos (those are
-  // UI feedback, not part of the art), so we draw with each piece's baseFilter. ----
+  // what's actually on screen. With a background it rebuilds the page's own
+  // layers — paper texture + top vignette under the pieces, legibility scrims +
+  // film grain over them — so a 'with background' save is what a screenshot would
+  // be (minus the UI chrome). The transient selection / lock halos are left out
+  // (drawn with each piece's baseFilter). ----
   var BLEND_MAP = { normal: 'source-over', screen: 'screen', lighten: 'lighten', difference: 'difference', exclusion: 'exclusion', multiply: 'multiply' };
+
+  // preload the two image layers the page paints itself with, so they're ready
+  // by the time you hit save (skipped gracefully if not yet decoded)
+  var texImg = new Image(); texImg.src = 'images/texture.png';
+  var grainImg = new Image();
+  var grainEl = document.querySelector('.grain');
+  if (grainEl) {
+    var gbg = getComputedStyle(grainEl).backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+    if (gbg) grainImg.src = gbg[1];
+  }
+
+  function fillTiled(ctx, W, H, img, tileW) {   // repeat img from 0,0 at tileW wide (height keeps ratio)
+    if (!(img.complete && img.naturalWidth)) return;
+    var tw = tileW, th = tw * (img.naturalHeight / img.naturalWidth);
+    var pat = ctx.createPattern(img, 'repeat');
+    if (pat && pat.setTransform) { pat.setTransform(new DOMMatrix([tw / img.naturalWidth, 0, 0, th / img.naturalHeight, 0, 0])); ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H); }
+    else { for (var y = 0; y < H; y += th) for (var x = 0; x < W; x += tw) ctx.drawImage(img, x, y, tw, th); }
+  }
+  function drawGround(ctx, W, H, k) {            // body background: ground + texture.png + top vignette
+    ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, W, H);
+    fillTiled(ctx, W, H, texImg, 500 * k);
+    var g = ctx.createRadialGradient(W * 0.5, -0.2 * H, 0, W * 0.5, -0.2 * H, Math.max(W, H));
+    g.addColorStop(0, 'rgba(18,18,21,0.5)'); g.addColorStop(0.6, 'rgba(18,18,21,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  function drawScrims(ctx, W, H, k) {            // the three .cutscrim gradients, over the pieces
+    ctx.globalCompositeOperation = 'source-over';
+    var gt = ctx.createLinearGradient(0, 0, 0, 90 * k);
+    gt.addColorStop(0, 'rgba(8,8,10,0.9)'); gt.addColorStop(0.55, 'rgba(8,8,10,0.5)'); gt.addColorStop(1, 'rgba(8,8,10,0)');
+    ctx.fillStyle = gt; ctx.fillRect(0, 0, W, 90 * k);
+    var gb = ctx.createLinearGradient(0, H, 0, H - 300 * k);
+    gb.addColorStop(0, 'rgba(8,8,10,0.97)'); gb.addColorStop(0.38, 'rgba(8,8,10,0.78)'); gb.addColorStop(0.66, 'rgba(8,8,10,0.32)'); gb.addColorStop(1, 'rgba(8,8,10,0)');
+    ctx.fillStyle = gb; ctx.fillRect(0, H - 300 * k, W, 300 * k);
+    ctx.save();                                  // bottom-left corner glow (elliptical, anchored at 0,H)
+    ctx.translate(0, H); ctx.scale(625 * k, 516 * k);
+    var gbl = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gbl.addColorStop(0, 'rgba(8,8,10,0.98)'); gbl.addColorStop(0.46, 'rgba(8,8,10,0.7)'); gbl.addColorStop(0.76, 'rgba(8,8,10,0)');
+    ctx.fillStyle = gbl; ctx.fillRect(-2, -2, 4, 4);
+    ctx.restore();
+  }
+  function drawGrain(ctx, W, H, k) {            // the .grain SVG noise, at its live opacity + animation offset
+    if (!(grainImg.complete && grainImg.naturalWidth)) return;
+    var ts = 300 * k, tx = 0, ty = 0;
+    if (grainEl) {
+      var tr = getComputedStyle(grainEl).transform;
+      if (tr && tr !== 'none') { try { var m = new DOMMatrix(tr); tx = m.m41 * k; ty = m.m42 * k; } catch (e) {} }
+    }
+    var ox = ((-100 * k + tx) % ts + ts) % ts, oy = ((-100 * k + ty) % ts + ts) % ts;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = parseFloat(grainEl ? getComputedStyle(grainEl).opacity : '0.09') || 0.09;
+    var pat = ctx.createPattern(grainImg, 'repeat');
+    if (pat && pat.setTransform) { pat.setTransform(new DOMMatrix([ts / grainImg.naturalWidth, 0, 0, ts / grainImg.naturalHeight, ox, oy])); ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H); }
+    else { for (var y = oy - ts; y < H; y += ts) for (var x = ox - ts; x < W; x += ts) ctx.drawImage(grainImg, x, y, ts, ts); }
+    ctx.restore();
+  }
   function drawComposition(k, opts) {
     var cv = document.createElement('canvas');
     cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k);
-    var ctx = cv.getContext('2d');
-    if (opts.background) { ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, cv.width, cv.height); }  // the dark ground, else leave it transparent
+    var W = cv.width, H = cv.height, ctx = cv.getContext('2d');
+    if (opts.background) drawGround(ctx, W, H, k);              // ground + texture + vignette, under the pieces
     var order = pieces.slice().sort(function (a, b) { return a.z - b.z; }); // bottom-up
     for (var i = 0; i < order.length; i++) {
       var p = order[i], img = p.el.firstChild;
@@ -410,13 +468,13 @@
       ctx.drawImage(img, -w / 2, -h / 2, w, h);
       ctx.restore();
     }
-    // negative look: invert RGB but keep alpha, so it matches CSS filter:invert(1)
-    // exactly and doesn't fill transparent areas (unlike the old difference-with-
-    // white trick, which broke a no-background export)
+    if (opts.background) { drawScrims(ctx, W, H, k); drawGrain(ctx, W, H, k); }   // scrims + grain, over the pieces
+    // negative look: invert the whole stack's RGB but keep alpha — matches the
+    // page's filter:invert(1), and (without a background) keeps the pieces cut out
     if (opts.negative) {
       ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
       try {
-        var im = ctx.getImageData(0, 0, cv.width, cv.height), a = im.data;
+        var im = ctx.getImageData(0, 0, W, H), a = im.data;
         for (var j = 0; j < a.length; j += 4) { a[j] = 255 - a[j]; a[j + 1] = 255 - a[j + 1]; a[j + 2] = 255 - a[j + 2]; }
         ctx.putImageData(im, 0, 0);
       } catch (e) {}
