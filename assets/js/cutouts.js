@@ -47,8 +47,9 @@
   // phones get fewer, smaller pieces — a packed 20 at desktop scale is too
   // heavy on a narrow screen.
   var isMobile = innerWidth <= 640;
-  // starts low now that the page is a collage tool — build up from here (0..30)
-  var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: 5 };
+  // starts low now that the page is a collage tool — build up from here (0..30).
+  // phones open with fewer (3) since a narrow screen packs tighter.
+  var DEFAULTS = { blend: 'normal', scaleMode: 'violent', motion: 'still', count: isMobile ? 3 : 5 };
   var BASE = isMobile ? 300 : 460; // px width at scale 1
   // jagged motion is livelier on desktop (more room + power) than on phones
   var JAG_SPEED = isMobile ? 0.9 : 1.8;
@@ -444,6 +445,7 @@
     var on = document.body.classList.toggle('clear');
     clearBtn.classList.toggle('on', on);
     clearBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    clearBtn.textContent = on ? 'show ui' : 'hide ui';   // label the actual action, not "clear"
     if (on) setActive(null);   // drop the selection halo too
   });
 
