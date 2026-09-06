@@ -56,8 +56,10 @@
   var JAG_JITTER = isMobile ? 2.6 : 5.5;
   var state = {
     blend: DEFAULTS.blend, scaleMode: DEFAULTS.scaleMode,
-    motion: DEFAULTS.motion, count: Math.min(DEFAULTS.count, POOL.length + 4)
+    motion: DEFAULTS.motion, count: Math.min(DEFAULTS.count, POOL.length + 4),
+    frame: 'screen'   // 'screen' = whole window; 'phone' = a 9:16 portrait frame (desktop)
   };
+  var PHONE_W = 1080, PHONE_H = 1920;   // export resolution for the phone frame
   var pieces = [];
 
   function pick(a) { return a[(Math.random() * a.length) | 0]; }
@@ -96,10 +98,11 @@
     el.style.width = (BASE * s) + 'px';
     el.style.mixBlendMode = state.blend;
     el.appendChild(img);
+    var reg = spawnRegion();   // full window, or inside the phone frame when it's on
     var p = {
       el: el,
-      x: opts.x != null ? opts.x : (Math.random() * 1.2 - 0.1) * innerWidth,
-      y: opts.y != null ? opts.y : (Math.random() * 1.2 - 0.1) * innerHeight,
+      x: opts.x != null ? opts.x : reg.x + Math.random() * reg.w,
+      y: opts.y != null ? opts.y : reg.y + Math.random() * reg.h,
       s: s,
       vx: (Math.random() * 2 - 1),
       vy: (Math.random() * 2 - 1),
@@ -467,8 +470,19 @@
     return cv;
   }
   function exportImage(opts) {
-    var k = Math.max(1.3, Math.min(2, window.devicePixelRatio || 1));
-    var cv = drawComposition(k, opts || { background: true, negative: false });
+    opts = opts || { background: true, negative: false };
+    var cv;
+    if (state.frame === 'phone') {
+      // render the whole window at a scale that makes the frame region PHONE_W
+      // wide, then crop that region out to an exact PHONE_W x PHONE_H canvas
+      var r = phoneRect(), k = PHONE_W / r.w;
+      var full = drawComposition(k, opts);
+      cv = document.createElement('canvas'); cv.width = PHONE_W; cv.height = PHONE_H;
+      cv.getContext('2d').drawImage(full, Math.round(r.x * k), Math.round(r.y * k), Math.round(r.w * k), Math.round(r.h * k), 0, 0, PHONE_W, PHONE_H);
+    } else {
+      var k2 = Math.max(1.3, Math.min(2, window.devicePixelRatio || 1));
+      cv = drawComposition(k2, opts);
+    }
     var url;
     try { url = cv.toDataURL('image/png'); } catch (e) { return; }  // synchronous + reliable
     var a = document.createElement('a');
@@ -616,10 +630,36 @@
   function flash(el) { if (!el) return; el.classList.add('added'); setTimeout(function () { el.classList.remove('added'); }, 220); }
   function inRect(x, y, r) { return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }
 
+  // ---- phone (9:16) frame: compose inside a portrait rectangle and export it
+  // at PHONE_W x PHONE_H. Desktop only (a phone is already phone-shaped). ----
+  var frameEl = document.getElementById('phoneframe');
+  function phoneRect() {                       // the frame's on-screen rectangle, fit into the window
+    var TW = 9, TH = 16, h = innerHeight, w = h * TW / TH;
+    if (w > innerWidth) { w = innerWidth; h = w * TH / TW; }
+    return { x: (innerWidth - w) / 2, y: (innerHeight - h) / 2, w: w, h: h };
+  }
+  function positionFrame() {
+    if (!frameEl) return;
+    var r = phoneRect();
+    frameEl.style.left = r.x + 'px'; frameEl.style.top = r.y + 'px';
+    frameEl.style.width = r.w + 'px'; frameEl.style.height = r.h + 'px';
+  }
+  function spawnRegion() {                      // where fresh pieces land
+    if (state.frame === 'phone') { var r = phoneRect(); return { x: r.x - r.w * 0.05, y: r.y, w: r.w * 1.1, h: r.h }; }
+    return { x: -0.1 * innerWidth, y: -0.1 * innerHeight, w: 1.2 * innerWidth, h: 1.2 * innerHeight };
+  }
+  function setFrame(v) {
+    state.frame = v;
+    document.body.classList.toggle('frame-phone', v === 'phone');
+    if (v === 'phone') positionFrame();
+    syncButtons();
+  }
+
   // ---- controls ----
   var BLENDS = ['normal', 'screen', 'lighten', 'difference', 'exclusion', 'multiply'];
   var SCALES = ['tame', 'violent'];
   var MOTIONS = ['still', 'drift', 'jagged', 'float', 'spin'];
+  var FRAMES = ['screen', 'phone'];
 
   function build(id, values, onset) {
     var box = document.getElementById(id);
@@ -640,12 +680,14 @@
       b.classList.toggle('on', b.dataset.v === state.motion);
       if (b.dataset.v !== 'still') b.disabled = reduce;
     });
+    document.querySelectorAll('#cutframe button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === state.frame); });
     document.getElementById('cutcount').textContent = state.count;
   }
 
   build('cutblend', BLENDS, function (v) { state.blend = v; pieces.forEach(function (p) { p.el.style.mixBlendMode = v; }); syncButtons(); });
   build('cutscale', SCALES, function (v) { state.scaleMode = v; recompose(); syncButtons(); });
   build('cutmotion', MOTIONS, setMotion);
+  build('cutframe', FRAMES, setFrame);
 
   // save & edit menu: 'with' / 'without' the dark ground, and normal / negative look
   build('expbg', ['with', 'without'], function (v) { expOpts.background = (v === 'with'); syncExport(); });
@@ -660,6 +702,7 @@
   addEventListener('resize', function () {
     clearTimeout(rz);
     rz = setTimeout(function () {
+      positionFrame();                    // the phone frame is height-based — keep it fitted
       if (innerWidth === lastW) return;   // height-only change — phone URL bar
       lastW = innerWidth;
       if (state.motion !== 'drift') recompose();

@@ -473,6 +473,15 @@ body.canvasbody{
 .cutoutbody .cutscrim.bl{ left:0; right:auto; bottom:0; width:500px; height:430px;
   background:radial-gradient(125% 120% at 0% 100%, rgba(8,8,10,.98), rgba(8,8,10,.7) 46%, transparent 76%); }
 
+/* phone (9:16) framing guide: a portrait rectangle you compose inside; the big
+   box-shadow dims everything outside it. position/size are set in JS. */
+.cutoutbody .phoneframe{
+  position:fixed; z-index:3; display:none; pointer-events:none;
+  border:1px solid rgba(228,226,221,.42);
+  box-shadow:0 0 0 100vmax rgba(8,8,10,.62);
+}
+body.cutoutbody.frame-phone .phoneframe{ display:block; }
+
 /* control cluster — same lowercase, letterspaced voice as the marks */
 .cutoutbody #cutpanel{
   position:fixed; z-index:6; left:22px; bottom:44px;
@@ -655,7 +664,8 @@ body.cutoutbody.clear .mark,
 body.cutoutbody.clear #cutpanel,
 body.cutoutbody.clear .cuttray,
 body.cutoutbody.clear .cutbin,
-body.cutoutbody.clear .panelbtn{ display:none; }
+body.cutoutbody.clear .panelbtn,
+body.cutoutbody.clear .phoneframe{ display:none; }
 
 /* the bin: fades in while dragging a piece; drop a piece on it to remove it */
 .cutoutbody .cutbin{
@@ -724,4 +734,8 @@ body.cutoutbody.clear .panelbtn{ display:none; }
 
   /* the +/- nudges are a web (trackpad) affordance; the touch slider is fine */
   .cutoutbody .cnudge{ display:none; }
+
+  /* phone framing is a desktop affordance (phones are already phone-shaped) */
+  .cutoutbody .cframe{ display:none; }
+  body.cutoutbody.frame-phone .phoneframe{ display:none; }
 }
