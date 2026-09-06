@@ -524,6 +524,10 @@ body.cutoutbody.frame-phone .phoneframe{ display:block; }
 .cutoutbody .cundo{ color:var(--bone); }
 .cutoutbody .cundo:hover{ color:var(--hot); }
 .cutoutbody .cundo::before{ content:"\21B6\A0"; }   /* ↶ undo */
+.cutoutbody .crec{ color:var(--bone); }
+.cutoutbody .crec:hover{ color:var(--hot); }
+.cutoutbody .crec::before{ content:"\25CF\A0"; }    /* ● record */
+.cutoutbody .crec.rec{ color:#e0655f; }              /* recording */
 
 /* per-piece edit row — shown only when a cutout is selected */
 .cutoutbody .cedit{ display:none; align-items:center; gap:10px; }

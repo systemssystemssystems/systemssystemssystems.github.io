@@ -496,9 +496,9 @@
     else { for (var y = oy - ts; y < H; y += ts) for (var x = ox - ts; x < W; x += ts) ctx.drawImage(grainImg, x, y, ts, ts); }
     ctx.restore();
   }
-  function drawComposition(k, opts) {
-    var cv = document.createElement('canvas');
-    cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k);
+  function drawComposition(k, opts, cv) {
+    cv = cv || document.createElement('canvas');   // reusable target (the recorder passes one)
+    cv.width = Math.round(innerWidth * k); cv.height = Math.round(innerHeight * k);   // assigning size also clears + resets state
     var W = cv.width, H = cv.height, ctx = cv.getContext('2d');
     if (opts.background) drawGround(ctx, W, H, k);              // ground + texture + vignette, under the pieces
     var order = pieces.slice().sort(function (a, b) { return a.z - b.z; }); // bottom-up
@@ -549,6 +549,65 @@
     a.download = 'systemssystemssystems-collage-' + Date.now() + '.png';
     a.target = '_blank';                   // iOS ignores download: opens the image to long-press-save
     document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ---- record a short clip of the motion to a .webm (web only). Each animation
+  // frame is drawn into a canvas; canvas.captureStream() + MediaRecorder encode
+  // it — all native, no dependency. Bounded (~REC_MS) and one-shot, and the
+  // recorder streams to the blob incrementally, so it can't pile up in memory. ----
+  var REC_MS = 3000, REC_FPS = 24, REC_MAXPX = 1280;   // cap the long side for a smooth capture
+  var recBtn = document.getElementById('cutrec');
+  var recSupported = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+  function recMime() {
+    var t = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+    for (var i = 0; i < t.length; i++) { try { if (MediaRecorder.isTypeSupported(t[i])) return t[i]; } catch (e) {} }
+    return '';
+  }
+  var recording = false;
+  function updateRecUI(on, secs) {
+    if (!recBtn) return;
+    recBtn.classList.toggle('rec', on);
+    recBtn.disabled = on;
+    recBtn.textContent = on ? ('recording' + (secs != null ? ' ' + secs : '')) : 'record';
+  }
+  function recordClip() {
+    if (recording || !recSupported) return;
+    var mime = recMime(); if (!mime) return;
+    recording = true; setActive(null); updateRecUI(true, Math.round(REC_MS / 1000));
+    var opts = { background: true, negative: document.body.classList.contains('page-inverted') };  // record what's on screen
+    var phone = state.frame === 'phone', pr = phone ? phoneRect() : null;
+    var k, ow, oh, cx, cy, cw, ch;
+    if (phone) { k = PHONE_W / pr.w; ow = PHONE_W; oh = PHONE_H; cx = pr.x * k; cy = pr.y * k; cw = pr.w * k; ch = pr.h * k; }
+    else { k = Math.min(1, REC_MAXPX / Math.max(innerWidth, innerHeight)); ow = Math.round(innerWidth * k); oh = Math.round(innerHeight * k); cx = 0; cy = 0; cw = ow; ch = oh; }
+    var recCanvas = document.createElement('canvas'); recCanvas.width = ow; recCanvas.height = oh;
+    var rctx = recCanvas.getContext('2d'), scratch = document.createElement('canvas');
+    function drawFrame() {
+      var full = drawComposition(k, opts, scratch);
+      rctx.drawImage(full, Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch), 0, 0, ow, oh);
+    }
+    var stream = recCanvas.captureStream(REC_FPS), chunks = [];
+    var mr = new MediaRecorder(stream, { mimeType: mime });
+    mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop = function () {
+      var url = URL.createObjectURL(new Blob(chunks, { type: mime }));
+      var a = document.createElement('a'); a.href = url; a.download = 'systemssystemssystems-collage-' + Date.now() + '.webm';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      recording = false; updateRecUI(false);
+    };
+    var start = performance.now(), lastDraw = 0, raf;
+    function loop(now) {
+      if (now - lastDraw >= 1000 / REC_FPS - 1) { drawFrame(); lastDraw = now; }
+      updateRecUI(true, Math.max(0, Math.ceil((REC_MS - (now - start)) / 1000)));
+      if (now - start >= REC_MS) { cancelAnimationFrame(raf); try { mr.stop(); } catch (e) { recording = false; updateRecUI(false); } return; }
+      raf = requestAnimationFrame(loop);
+    }
+    try { mr.start(); } catch (e) { recording = false; updateRecUI(false); return; }
+    drawFrame(); raf = requestAnimationFrame(loop);
+  }
+  if (recBtn) {
+    if (!recSupported || !recMime()) { recBtn.disabled = true; recBtn.title = 'clip recording needs a Chromium/Firefox browser'; }
+    else recBtn.addEventListener('click', recordClip);
   }
 
   // ---- 'save' opens a small 'save & edit' menu in place of the controls, where
