@@ -113,8 +113,10 @@
       pinned: false,
       baseFilter: filt,
       cut: c,                                    // which cutout — lets a piece be duplicated
-      inv: inv                                   // per-piece colour invert
+      inv: inv,                                  // per-piece colour invert
+      opacity: (opts.opacity != null ? opts.opacity : 1)   // per-piece opacity (web slider)
     };
+    if (p.opacity !== 1) el.style.opacity = p.opacity;
     place(p);
     stage.appendChild(el);
     pieces.push(p);
@@ -283,7 +285,7 @@
     if (!grab) return;
     if (!grab.moved && (Math.abs(e.clientX - grab.x0) > 5 || Math.abs(e.clientY - grab.y0) > 5)) {
       grab.moved = true;
-      if (draggable(grab.p)) { grab.p.z = ++zTop; grab.p.el.style.zIndex = zTop; }  // lift to front while moving
+      if (draggable(grab.p)) { pushUndo(); grab.p.z = ++zTop; grab.p.el.style.zIndex = zTop; }  // snapshot pre-move, then lift to front
     }
     if (grab.moved && draggable(grab.p)) {
       grab.p.x = e.clientX - grab.ox; grab.p.y = e.clientY - grab.oy; place(grab.p);
@@ -316,8 +318,10 @@
   var wheelTarget = null, wheelTimer = null;
   stage.addEventListener('wheel', function (e) {
     e.preventDefault();   // always — stops a trackpad pinch zooming the page over the canvas
+    var fresh = !wheelTarget;
     var p = (wheelTarget && pieces.indexOf(wheelTarget) >= 0) ? wheelTarget : hitPiece(e.clientX, e.clientY);
     if (!p || !draggable(p)) return;
+    if (fresh) pushUndo();   // one undo step per continuous wheel-resize
     wheelTarget = p;
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(function () { wheelTarget = null; }, 260);
@@ -349,39 +353,93 @@
       showEdit(true);
       if (lockEl) { lockEl.classList.toggle('on', !!p.pinned); lockEl.setAttribute('aria-pressed', p.pinned ? 'true' : 'false'); }
       if (pinvEl) { pinvEl.classList.toggle('on', !!p.inv); pinvEl.setAttribute('aria-pressed', p.inv ? 'true' : 'false'); }
-      syncSize(); syncRot();
+      syncSize(); syncRot(); syncOpacity();
     } else showEdit(false);
   }
-  if (sizeEl) sizeEl.addEventListener('input', function () { if (active) resizeTo(active, Math.exp(SLO + (SHI - SLO) * (+sizeEl.value / 1000))); });
-  if (rotEl) rotEl.addEventListener('input', function () { if (active) { active.rot = +rotEl.value; place(active); } });
+  if (sizeEl) {
+    sizeEl.addEventListener('input', function () { if (active) { sliderSnap(); resizeTo(active, Math.exp(SLO + (SHI - SLO) * (+sizeEl.value / 1000))); } });
+    sizeEl.addEventListener('change', sliderDone);
+  }
+  if (rotEl) {
+    rotEl.addEventListener('input', function () { if (active) { sliderSnap(); active.rot = +rotEl.value; place(active); } });
+    rotEl.addEventListener('change', sliderDone);
+  }
 
   // fine nudges (web only — hidden on phones): the sliders sweep coarse, these
   // +/- give an exact small step for the last bit of precision a trackpad can't.
-  function nudgeSize(dir) { if (active) { resizeTo(active, active.s * Math.pow(1.05, dir)); syncSize(); } }   // ~5% per click
-  function nudgeRot(dir) { if (active) { active.rot = ((Math.round(active.rot) + dir * 2) % 360 + 360) % 360; place(active); syncRot(); } }   // 2° per click
+  function nudgeSize(dir) { if (active) { pushUndo(); resizeTo(active, active.s * Math.pow(1.05, dir)); syncSize(); } }   // ~5% per click
+  function nudgeRot(dir) { if (active) { pushUndo(); active.rot = ((Math.round(active.rot) + dir * 2) % 360 + 360) % 360; place(active); syncRot(); } }   // 2° per click
   function nudge(id, fn, dir) { var b = document.getElementById(id); if (b) b.addEventListener('click', function () { fn(dir); }); }
   nudge('cutsizedn', nudgeSize, -1); nudge('cutsizeup', nudgeSize, 1);
   nudge('cutrotdn', nudgeRot, -1); nudge('cutrotup', nudgeRot, 1);
   if (lockEl) lockEl.addEventListener('click', function () {
     if (!active) return;
+    pushUndo();
     pinPiece(active, !active.pinned);
     lockEl.classList.toggle('on', active.pinned);
     lockEl.setAttribute('aria-pressed', active.pinned ? 'true' : 'false');
   });
-  if (delEl) delEl.addEventListener('click', function () { if (active) { removePiece(active); setActive(null); } });
+  if (delEl) delEl.addEventListener('click', function () { if (active) { pushUndo(); removePiece(active); setActive(null); } });
   if (dupEl) dupEl.addEventListener('click', function () {
-    if (!active) return;   // copy the selected piece (same cutout, size, rotation, colour), offset a touch
-    var p = spawnPiece(pieces.length, { cutout: active.cut, x: active.x + 30, y: active.y + 30, scale: active.s, rot: active.rot, invert: active.inv });
+    if (!active) return;   // copy the selected piece (same cutout, size, rotation, colour, opacity), offset a touch
+    pushUndo();
+    var p = spawnPiece(pieces.length, { cutout: active.cut, x: active.x + 30, y: active.y + 30, scale: active.s, rot: active.rot, invert: active.inv, opacity: active.opacity });
     setActive(p);
   });
   if (pinvEl) pinvEl.addEventListener('click', function () {
     if (!active) return;   // invert just this piece's colour
+    pushUndo();
     active.inv = !active.inv;
     active.baseFilter = active.inv ? 'invert(1) contrast(1.2)' : 'contrast(1.2)';
     applyFilter(active);
     pinvEl.classList.toggle('on', active.inv);
     pinvEl.setAttribute('aria-pressed', active.inv ? 'true' : 'false');
   });
+
+  // ---- opacity (web only): a slider fades the selected piece ----
+  var opacEl = document.getElementById('cutopac');
+  function setOpacity(p, v) { p.opacity = clamp(v, 0.05, 1); p.el.style.opacity = p.opacity; }
+  function syncOpacity() { if (active && opacEl) opacEl.value = Math.round((active.opacity != null ? active.opacity : 1) * 100); }
+
+  // ---- undo (web only): snapshot the composition before each edit and rebuild
+  // it on undo. One mechanism covers add / remove / move / resize / rotate /
+  // opacity / recompose, so there's no per-action inverse to maintain. ----
+  var undoStack = [], UNDO_CAP = 80, undoBtn = document.getElementById('cutundo');
+  function snapPieces() {
+    return pieces.map(function (p) {
+      return { cut: p.cut, x: p.x, y: p.y, s: p.s, rot: p.rot, inv: p.inv, pinned: p.pinned, opacity: (p.opacity != null ? p.opacity : 1), z: p.z };
+    });
+  }
+  function updateUndo() { if (undoBtn) undoBtn.disabled = undoStack.length === 0; }
+  function pushUndo() { undoStack.push(snapPieces()); if (undoStack.length > UNDO_CAP) undoStack.shift(); updateUndo(); }
+  function restoreSnapshot(snap) {
+    setActive(null);
+    stage.innerHTML = ''; pieces = [];
+    var maxZ = zTop;
+    snap.slice().sort(function (a, b) { return a.z - b.z; }).forEach(function (e) {   // ascending z → DOM order = paint order
+      var p = spawnPiece(e.z, { cutout: e.cut, x: e.x, y: e.y, scale: e.s, rot: e.rot, invert: e.inv, opacity: e.opacity });
+      p.z = e.z; p.pinned = e.pinned;
+      if (e.pinned) p.el.style.zIndex = e.z;
+      if (e.z > maxZ) maxZ = e.z;
+      applyFilter(p);
+    });
+    zTop = maxZ;
+  }
+  function undo() { if (undoStack.length) { restoreSnapshot(undoStack.pop()); updateUndo(); } }
+  if (undoBtn) undoBtn.addEventListener('click', undo);
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
+  });
+
+  // sliders (size / rotate / opacity) = one undo step per drag: snapshot at the
+  // first 'input' (active still holds the pre-drag value), reset on 'change'
+  var sliderDirty = false;
+  function sliderSnap() { if (!sliderDirty) { sliderDirty = true; pushUndo(); } }
+  function sliderDone() { sliderDirty = false; }
+  if (opacEl) {
+    opacEl.addEventListener('input', function () { if (active) { sliderSnap(); setOpacity(active, +opacEl.value / 100); } });
+    opacEl.addEventListener('change', sliderDone);
+  }
 
   // block the browser's own pinch-zoom / gesture navigation on this page so a
   // trackpad pinch can't zoom the page or pop the tab overview
@@ -450,6 +508,7 @@
       var w = parseFloat(p.el.style.width) * k, h = w * (img.naturalHeight / img.naturalWidth);
       ctx.save();
       ctx.globalCompositeOperation = BLEND_MAP[state.blend] || 'source-over';
+      ctx.globalAlpha = (p.opacity != null ? p.opacity : 1);       // per-piece opacity
       try { ctx.filter = p.baseFilter || 'none'; } catch (e) {}   // colour only — no halo
       ctx.translate(p.x * k, p.y * k);
       if (p.rot) ctx.rotate(p.rot * Math.PI / 180);
@@ -553,6 +612,7 @@
   var trayHandle = document.getElementById('trayHandle');
 
   function dropCutout(cutout, x, y) {
+    pushUndo();   // adding a piece from the tray is one undo step
     var s = 0.9 + Math.random() * 0.5;
     // left unpinned so the motion effects apply to it when motion is on; in
     // still mode it simply stays where you dropped it (tap it to pin/lock).
@@ -685,7 +745,7 @@
   }
 
   build('cutblend', BLENDS, function (v) { state.blend = v; pieces.forEach(function (p) { p.el.style.mixBlendMode = v; }); syncButtons(); });
-  build('cutscale', SCALES, function (v) { state.scaleMode = v; recompose(); syncButtons(); });
+  build('cutscale', SCALES, function (v) { pushUndo(); state.scaleMode = v; recompose(); syncButtons(); });
   build('cutmotion', MOTIONS, setMotion);
   build('cutframe', FRAMES, setFrame);
 
@@ -694,9 +754,9 @@
   build('explook', ['normal', 'negative'], function (v) { expOpts.negative = (v === 'negative'); syncExport(); });
   syncExport();
 
-  document.getElementById('cutmore').addEventListener('click', function () { state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
-  document.getElementById('cutless').addEventListener('click', function () { state.count = Math.max(0, state.count - 1); recompose(); syncButtons(); });
-  document.getElementById('cutrecompose').addEventListener('click', recompose);
+  document.getElementById('cutmore').addEventListener('click', function () { pushUndo(); state.count = Math.min(30, state.count + 1); recompose(); syncButtons(); });
+  document.getElementById('cutless').addEventListener('click', function () { pushUndo(); state.count = Math.max(0, state.count - 1); recompose(); syncButtons(); });
+  document.getElementById('cutrecompose').addEventListener('click', function () { pushUndo(); recompose(); });
 
   var rz, lastW = innerWidth;
   addEventListener('resize', function () {

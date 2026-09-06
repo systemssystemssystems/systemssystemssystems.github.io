@@ -66,6 +66,8 @@
     <button type="button" class="cnudge" id="cutrotdn" aria-label="rotate counter-clockwise">&minus;</button>
     <input type="range" class="csize" id="cutrot" min="0" max="360" value="0" aria-label="rotate selected cutout">
     <button type="button" class="cnudge" id="cutrotup" aria-label="rotate clockwise">+</button></div>
+  <div class="crow cedit cweb"><span class="clab">opacity</span>
+    <input type="range" class="csize" id="cutopac" min="5" max="100" value="100" aria-label="opacity of selected cutout"></div>
   <div class="crow cedit">
     <button type="button" class="cdup" id="cutdup">duplicate</button>
     <button type="button" class="cpinv" id="cutpinv" aria-pressed="false">invert</button>
@@ -75,6 +77,7 @@
     <button type="button" class="cdel" id="cutdel">remove</button>
   </div>
   <div class="crow cactions">
+    <button type="button" class="cundo cweb" id="cutundo" disabled aria-keyshortcuts="Control+Z Meta+Z">undo</button>
     <button type="button" class="crecompose" id="cutrecompose">recompose</button>
     <button type="button" class="csave" id="cutsave">save</button>
     <button type="button" class="cinvert" id="cutinvert" aria-pressed="false">invert</button>

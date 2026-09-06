@@ -521,6 +521,9 @@ body.cutoutbody.frame-phone .phoneframe{ display:block; }
 .cutoutbody .cinvert:hover{ color:var(--hot); }
 .cutoutbody .cinvert.on{ color:var(--hot); }
 .cutoutbody .cinvert::before{ content:"\25D0\A0"; }  /* half-filled circle */
+.cutoutbody .cundo{ color:var(--bone); }
+.cutoutbody .cundo:hover{ color:var(--hot); }
+.cutoutbody .cundo::before{ content:"\21B6\A0"; }   /* ↶ undo */
 
 /* per-piece edit row — shown only when a cutout is selected */
 .cutoutbody .cedit{ display:none; align-items:center; gap:10px; }
@@ -737,5 +740,11 @@ body.cutoutbody.clear .phoneframe{ display:none; }
 
   /* phone framing is a desktop affordance (phones are already phone-shaped) */
   .cutoutbody .cframe{ display:none; }
+
+  /* web-only edit affordances: opacity slider + undo (kept off the phone, which
+     is aimed at quick compositions). .cedit.cweb matches .cedit.show's
+     specificity and wins by coming later, so it stays hidden even when selected */
+  .cutoutbody .cweb,
+  .cutoutbody .cedit.cweb{ display:none; }
   body.cutoutbody.frame-phone .phoneframe{ display:none; }
 }
